@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>廖洁专属 · 洛克王国爱意助手</title>
-    <!-- 核心依赖（针对国内网络优化的稳定镜像） -->
+    <!-- 依赖镜像 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
@@ -20,7 +20,7 @@
             color: #1e293b;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 20px 40px -10px rgba(244, 114, 182, 0.15);
@@ -30,6 +30,7 @@
         .love-burst { animation: burst 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes burst { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .mvp-glow { box-shadow: 0 0 25px rgba(236, 72, 153, 0.4); border: 2.5px solid #f472b6; }
     </style>
 </head>
 <body>
@@ -38,11 +39,11 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect, useRef } = React;
 
-        // ==========================================
-        // 数据区：全量内置官方规则与精灵
-        // ==========================================
+        // === 1. 数据区：全量内置官方规则 ===
         const TYPE_RULES_DATA = {"普通":{"strong":[""],"resist":["地","幽","机械"],"weak":["武"],"vulnerable":["幽"]},"草":{"strong":["水","光","地"],"resist":["火","龙","毒","虫","翼","机械"],"weak":["火","冰","毒","虫","翼"],"vulnerable":["水","地","电","光"]},"火":{"strong":["草","冰","虫","机械"],"resist":["水","地","龙"],"weak":["水","地"],"vulnerable":["草","冰","虫","萌","机械"]},"水":{"strong":["火","地","机械"],"resist":["草","冰","龙"],"weak":["草","电"],"vulnerable":["火","机械"]},"光":{"strong":["幽","恶"],"resist":["草","冰"],"weak":["草","幽"],"vulnerable":["恶","幻"]},"地":{"strong":["火","冰","电","毒"],"resist":["草","武"],"weak":["草","水","冰","武","机械"],"vulnerable":["普通","火","电","毒","翼"]},"冰":{"strong":["草","地","龙","翼"],"resist":["火","冰","机械"],"weak":["火","地","武","机械"],"vulnerable":["水","冰","光"]},"龙":{"strong":["龙"],"resist":["机械"],"weak":["冰","龙","萌"],"vulnerable":["草","火","水","电","翼"]},"电":{"strong":["水","翼"],"resist":["草","地","龙","电"],"weak":["地"],"vulnerable":["电","翼","机械"]},"毒":{"strong":["草","萌"],"resist":["地","毒","幽","机械"],"weak":["地","恶","幻"],"vulnerable":["草","毒","虫","武","萌"]},"虫":{"strong":["草","恶","幻"],"resist":["火","毒","武","翼","萌","幽","机械"],"weak":["火","翼"],"vulnerable":["草","武"]},"武":{"strong":["普通","地","冰","恶","机械"],"resist":["毒","虫","翼","萌","幽","幻"],"weak":["翼","萌","幻"],"vulnerable":["地","虫","恶"]},"翼":{"strong":["草","虫","武"],"resist":["地","龙","电","机械"],"weak":["冰","电"],"vulnerable":["草","虫","武"]},"萌":{"strong":["龙","武","恶"],"resist":["火","毒","机械"],"weak":["毒","恶","机械"],"vulnerable":["虫","武"]},"幽":{"strong":["光","幽","幻"],"resist":["普通","恶"],"weak":["光","幽","恶"],"vulnerable":["普通","毒","虫","武"]},"恶":{"strong":["毒","萌","幽"],"resist":["光","武","恶"],"weak":["光","虫","武","萌"],"vulnerable":["幽","恶"]},"机械":{"strong":["地","冰","萌"],"resist":["火","水","电","机械"],"weak":["火","水","武"],"vulnerable":["普通","草","冰","龙","毒","虫","翼","萌","机械","幻"]},"幻":{"strong":["毒","武"],"resist":["光","机械","幻"],"weak":["虫","幽"],"vulnerable":["武","幻"]}};
-        const PET_DATA = [{"name":"迪莫","types":["光"]},{"name":"喵喵","types":["草"]},{"name":"魔力猫","types":["草"]},{"name":"火花","types":["火"]},{"name":"火神","types":["火"]},{"name":"水蓝蓝","types":["水"]},{"name":"水灵","types":["水"]},{"name":"花影羚羊","types":["幽, 恶"]},{"name":"雪绒鸟","types":["翼"]},{"name":"石冠王蜥","types":["地"]},{"name":"化蝶","types":["虫, 萌"]},{"name":"阿米亚特","types":["地"]},{"name":"罗隐","types":["地, 恶"]},{"name":"雪影娃娃","types":["冰, 萌"]},{"name":"圣羽翼王","types":["翼"]},{"name":"皇家狮鹫","types":["翼"]},{"name":"棋绮后","types":["武, 地"]},{"name":"伊兰龙","types":["龙"]},{"name":"迷迷箱怪","types":["机械, 幻"]},{"name":"烈火守护","types":["火"]},{"name":"翼龙","types":["龙, 翼"]},{"name":"圣代甜甜","types":["冰"]},{"name":"龙鱼","types":["水, 龙"]},{"name":"火焰猿","types":["火"]},{"name":"冰钻布鲁斯","types":["冰"]},{"name":"红绒十字","types":["火, 萌"]},{"name":"乌拉塔","types":["恶, 火"]},{"name":"立方人","types":["机械"]},{"name":"武者鸡","types":["火, 武"]},{"name":"深蓝鲸","types":["水"]},{"name":"格兰球","types":["草"]},{"name":"遁地鼠","types":["地"]},{"name":"秩序鱿墨","types":["幽, 萌"]},{"name":"寂灭骨龙","types":["龙, 幽"]},{"name":"厉毒修萝","types":["毒, 恶"]},{"name":"龙息帕尔","types":["恶"]},{"name":"食尘短绒","types":["虫, 地"]},{"name":"画间法师手","types":["普通, 幻"]},{"name":"古卷执政官","types":["普通, 幻"]},{"name":"绒仙子","types":["光, 虫"]},{"name":"疾光千兽","types":["光"]},{"name":"熔岩布丁","types":["水, 火"]},{"name":"利灯鱼","types":["水, 电"]},{"name":"月牙雪熊","types":["冰, 幻"]},{"name":"窃光蚊","types":["恶, 光"]},{"name":"燃薪虫","types":["火, 草"]},{"name":"夜枭","types":["幽"]},{"name":"小皮球","types":["电, 幻"]},{"name":"贝古斯","types":["机械, 火"]},{"name":"落陨星兔","types":["幻, 幽"]},{"name":"上岸蛙","types":["幻"]},{"name":"雅丹鬃","types":["火"]},{"name":"春花兔","types":["草"]},{"name":"暮星辰","types":["幻, 翼"]}];
+        
+        // === 2. 数据区：全量内置精灵图鉴 ===
+        const PET_DATA = [{"name":"迪莫","types":["光"]},{"name":"魔力猫","types":["草"]},{"name":"火神","types":["火"]},{"name":"水灵","types":["水"]},{"name":"花影羚羊","types":["幽","恶"]},{"name":"雪绒鸟","types":["翼"]},{"name":"石冠王蜥","types":["地"]},{"name":"化蝶","types":["虫","萌"]},{"name":"罗隐","types":["地","恶"]},{"name":"雪影娃娃","types":["冰","萌"]},{"name":"圣羽翼王","types":["翼"]},{"name":"皇家狮鹫","types":["翼"]},{"name":"棋绮后","types":["武","地"]},{"name":"伊兰龙","types":["龙"]},{"name":"迷迷箱怪","types":["机械","幻"]},{"name":"烈火守护","types":["火"]},{"name":"翼龙","types":["龙","翼"]},{"name":"龙鱼","types":["水","龙"]},{"name":"火焰猿","types":["火"]},{"name":"红绒十字","types":["火","萌"]},{"name":"乌拉塔","types":["恶","火"]},{"name":"立方人","types":["机械"]},{"name":"武者鸡","types":["火","武"]},{"name":"格兰球","types":["草"]},{"name":"遁地鼠","types":["地"]},{"name":"秩序鱿墨","types":["幽","萌"]},{"name":"寂灭骨龙","types":["龙","幽"]},{"name":"厉毒修萝","types":["毒","恶"]},{"name":"龙息帕尔","types":["恶"]},{"name":"食尘短绒","types":["虫","地"]},{"name":"画间法师手","types":["普通","幻"]},{"name":"古卷执政官","types":["普通","幻"]},{"name":"绒仙子","types":["光","虫"]},{"name":"疾光千兽","types":["光"]},{"name":"熔岩布丁","types":["水","火"]},{"name":"利灯鱼","types":["水","电"]},{"name":"月牙雪熊","types":["冰","幻"]},{"name":"窃光蚊","types":["恶","光"]},{"name":"燃薪虫","types":["火","草"]},{"name":"夜枭","types":["幽"]},{"name":"小皮球","types":["电","幻"]},{"name":"贝古斯","types":["机械","火"]},{"name":"落陨星兔","types":["幻","幽"]},{"name":"上岸蛙","types":["幻"]},{"name":"雅丹鬃","types":["火"]},{"name":"春花兔","types":["草"]},{"name":"暮星辰","types":["幻","翼"]}];
 
         const TYPE_COLORS = {
             '普通': 'bg-stone-300', '火': 'bg-rose-400', '水': 'bg-sky-400', '草': 'bg-emerald-400',
@@ -51,14 +52,6 @@
             '幽': 'bg-violet-500', '龙': 'bg-purple-600', '恶': 'bg-slate-700', '机械': 'bg-zinc-400',
             '萌': 'bg-pink-400', '光': 'bg-yellow-100 text-yellow-800', '幻': 'bg-pink-500'
         };
-
-        const LOVE_QUOTES = [
-            "廖洁，今天的你比光系精灵还要闪耀 ✨",
-            "遇见你是我在洛克王国抓到的最稀有的‘精灵’ ❤️",
-            "不管属性如何克制，我对你的爱永远是3倍伤害！",
-            "无论对方派出谁，我的守护精灵永远为你而战。",
-            "廖洁，你是我的全系守护，无人能及 🌸"
-        ];
 
         // 图标组件
         const LucideIcon = ({ name, size = 20, className = "", fill = "none" }) => {
@@ -73,355 +66,213 @@
         };
 
         function App() {
-            const [activeTab, setActiveTab] = useState('6v6'); // 'quick' or '6v6'
-            const [defenders, setDefenders] = useState([]);
-            
-            // 6v6 战队状态
             const [opponentTeam, setOpponentTeam] = useState(Array(6).fill([]));
             const [activeSlot, setActiveSlot] = useState(0);
 
-            const [quote, setQuote] = useState(LOVE_QUOTES[0]);
-            const [showBurst, setShowBurst] = useState(false);
-
-            // 预处理图鉴
-            const processedPets = useMemo(() => {
-                const WIKI_MAP = { '幽灵': '幽', '恶魔': '恶', '土': '地' };
-                return PET_DATA.map(p => {
-                    const clean = new Set();
-                    p.types.forEach(tg => {
-                        const items = typeof tg === 'string' ? tg.split(',') : tg;
-                        items.forEach(t => {
-                            let s = t.trim(); s = WIKI_MAP[s] || s;
-                            if (TYPE_RULES_DATA[s]) clean.add(s);
-                        });
-                    });
-                    return { name: p.name, types: Array.from(clean) };
-                });
-            }, []);
-
-            // 核心计算：获取两个属性之间的原始倍率
             const getRawMult = (atk, def) => {
+                if (!TYPE_RULES_DATA[atk]) return 1;
                 if (TYPE_RULES_DATA[atk].strong.includes(def)) return 2;
                 if (TYPE_RULES_DATA[atk].resist.includes(def)) return 0.5;
                 return 1;
             };
 
-            // 6v6 战术分析逻辑
-            const teamRecommendations = useMemo(() => {
-                const filledPets = opponentTeam.filter(p => p.length > 0);
-                if (filledPets.length === 0) return [];
+            // 精灵整体核心分析逻辑：加入具体靶点追踪
+            const tacticalReport = useMemo(() => {
+                const filledOppPets = opponentTeam.map((types, index) => ({ types, index: index + 1 })).filter(p => p.types.length > 0);
+                if (filledOppPets.length === 0) return { mvps: [], riskTypes: [] };
 
-                const analysis = Object.keys(TYPE_RULES_DATA).map(atkType => {
-                    let counteredCount = 0;
-                    let totalDamagePotential = 0;
+                const analysis = PET_DATA.map(myPet => {
+                    let targets = []; // 针对的目标编号列表
+                    let dangerCount = 0;
 
-                    filledPets.forEach(petTypes => {
-                        let petMult = 1.0;
-                        petTypes.forEach(t => {
-                            petMult *= getRawMult(atkType, t);
+                    filledOppPets.forEach(opp => {
+                        // 进攻端：能否克制该目标
+                        const canHit = myPet.types.some(myT => {
+                            let m = 1.0;
+                            opp.types.forEach(oppT => m *= getRawMult(myT, oppT));
+                            return m > 1;
                         });
-                        // 洛克王国极致克制上限
-                        if (petMult > 1) {
-                            counteredCount++;
-                            totalDamagePotential += (petMult > 3 ? 3 : petMult);
-                        }
+                        if (canHit) targets.push(opp.index);
+
+                        // 防御端：该目标是否克制我
+                        const getsHit = opp.types.some(oppT => {
+                            let m = 1.0;
+                            myPet.types.forEach(myT => m *= getRawMult(oppT, myT));
+                            return m > 1;
+                        });
+                        if (getsHit) dangerCount++;
                     });
 
-                    return { 
-                        type: atkType, 
-                        count: counteredCount, 
-                        potential: totalDamagePotential 
-                    };
+                    return { ...myPet, targets, danger: dangerCount };
                 });
 
-                // 排序规则：首先是克制数量多的，其次是总伤害潜力高的
-                return analysis
-                    .filter(a => a.count > 0)
-                    .sort((a, b) => b.count - a.count || b.potential - a.potential)
-                    .slice(0, 5); // 推荐前 5 名
+                // MVP 筛选逻辑
+                const mvps = analysis
+                    .filter(p => p.targets.length >= 1)
+                    .sort((a, b) => b.targets.length - a.targets.length || a.danger - b.danger)
+                    .slice(0, 10);
+
+                return { mvps };
             }, [opponentTeam]);
-
-            // 单属性/双属性快速查询结果
-            const quickResults = useMemo(() => {
-                if (defenders.length === 0) return null;
-                const res = { '3': [], '2': [], '1': [], '0.5': [], '0.25': [], '0': [] };
-                Object.keys(TYPE_RULES_DATA).forEach(attacker => {
-                    let m = 1;
-                    defenders.forEach(def => m *= getRawMult(attacker, def));
-                    if (m >= 4) m = 3;
-                    const key = m.toString();
-                    if (res[key]) res[key].push(attacker);
-                    else if (m < 0.25 && m > 0) res['0.25'].push(attacker);
-                    else if (m === 0) res['0'].push(attacker);
-                });
-                return res;
-            }, [defenders]);
-
-            const getRecommendedPets = (type) => {
-                const matches = []; const seen = new Set();
-                for (let i = processedPets.length - 1; i >= 0; i--) {
-                    const p = processedPets[i];
-                    if (p.types.includes(type) && !seen.has(p.name)) {
-                        matches.push(p.name); seen.add(p.name);
-                    }
-                    if (matches.length >= 6) break;
-                }
-                return matches;
-            };
-
-            const toggleTypeInSlot = (type) => {
-                setOpponentTeam(prev => {
-                    const newTeam = [...prev];
-                    const currentSlotTypes = newTeam[activeSlot];
-                    if (currentSlotTypes.includes(type)) {
-                        newTeam[activeSlot] = currentSlotTypes.filter(t => t !== type);
-                    } else if (currentSlotTypes.length < 2) {
-                        newTeam[activeSlot] = [...currentSlotTypes, type];
-                    }
-                    return newTeam;
-                });
-            };
-
-            const triggerLove = () => {
-                setQuote(LOVE_QUOTES[Math.floor(Math.random() * LOVE_QUOTES.length)]);
-                setShowBurst(true);
-                setTimeout(() => setShowBurst(false), 1000);
-            };
 
             return (
                 <div className="max-w-6xl mx-auto p-4 md:p-8 relative min-h-screen">
-                    <header className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6 relative z-10">
+                    <header className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
                         <div className="flex items-center gap-5">
                             <div className="bg-pink-500 p-4 rounded-[2.5rem] shadow-lg shadow-pink-200 floating text-white">
-                                <LucideIcon name="heart" size={36} fill="white" />
+                                <LucideIcon name="crosshair" size={32} fill="white" />
                             </div>
                             <div>
-                                <h1 className="text-4xl font-black tracking-tight">廖洁专属 <span className="text-pink-500">·</span> 爱意助手</h1>
-                                <p className="text-pink-400 font-bold text-xs mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <LucideIcon name="zap" size={14} fill="#ec4899" /> 6v6 战队策略旗舰版
+                                <h1 className="text-4xl font-black">廖洁专属 <span className="text-pink-500">·</span> 战术指挥官</h1>
+                                <p className="text-pink-400 font-bold text-xs mt-1 uppercase tracking-widest flex items-center gap-2">
+                                    <LucideIcon name="shield-check" size={14} fill="#ec4899" /> 6v6 精准打击对位系统
                                 </p>
                             </div>
                         </div>
-                        <button onClick={triggerLove} className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-100 flex items-center gap-4 group transition-all hover:shadow-pink-200 hover:scale-105 active:scale-95">
-                            <div className="text-right">
-                                <p className="text-[10px] font-black text-slate-300 uppercase">惊喜驿站</p>
-                                <p className="text-xs font-bold text-pink-500">廖洁的随机情话</p>
-                            </div>
-                            <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-colors">
-                                <LucideIcon name="heart" size={24} fill={showBurst ? "currentColor" : "none"} className={showBurst ? "love-burst" : ""} />
-                            </div>
-                        </button>
                     </header>
 
-                    {/* Tab 切换 */}
-                    <div className="flex justify-center gap-4 mb-10">
-                        {[
-                            { id: '6v6', name: '6v6 战队深度分析', icon: 'swords' },
-                            { id: 'quick', name: '单/双属性极速查', icon: 'zap' }
-                        ].map(tab => (
-                            <button 
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`px-6 py-3 rounded-2xl font-black text-sm flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-pink-500 text-white shadow-lg scale-105' : 'bg-white text-slate-400 border border-pink-50 hover:bg-pink-50'}`}
-                            >
-                                <LucideIcon name={tab.icon} size={16} fill={activeTab === tab.id ? 'white' : 'none'} />
-                                {tab.name}
-                            </button>
-                        ))}
-                    </div>
-
-                    <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
-                        {/* 左侧控制区 */}
+                    <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* 左侧录入：对手战队 */}
                         <div className="lg:col-span-5 space-y-6">
                             <section className="glass-card p-8 rounded-[3.5rem] shadow-2xl">
-                                {activeTab === 'quick' ? (
-                                    <>
-                                        <h2 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
-                                            <LucideIcon name="shield" className="text-pink-500" /> 设定防守属性
-                                        </h2>
-                                        <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                                            {Object.keys(TYPE_RULES_DATA).map(type => (
-                                                <button 
-                                                    key={type}
-                                                    onClick={() => defenders.includes(type) ? setDefenders(defenders.filter(t => t!==type)) : defenders.length<2 && setDefenders([...defenders, type])}
-                                                    className={`py-3.5 rounded-2xl font-black text-xs transition-all border ${
-                                                        defenders.includes(type) 
-                                                        ? `${TYPE_COLORS[type]} text-white border-transparent ring-4 ring-pink-100 shadow-xl` 
-                                                        : 'bg-white/60 text-slate-500 border-slate-100 hover:border-pink-300'
-                                                    }`}
-                                                >
-                                                    {type}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
-                                            <LucideIcon name="users" className="text-pink-500" /> 对方 6v6 阵容录入
-                                        </h2>
-                                        <div className="grid grid-cols-3 gap-3 mb-8">
-                                            {opponentTeam.map((pet, idx) => (
-                                                <button 
-                                                    key={idx}
-                                                    onClick={() => setActiveSlot(idx)}
-                                                    className={`h-24 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-2 ${activeSlot === idx ? 'border-pink-500 bg-pink-50 shadow-md scale-105' : 'border-slate-100 bg-white/50'}`}
-                                                >
-                                                    <span className="text-[10px] font-black text-slate-400 uppercase">Pet {idx+1}</span>
-                                                    <div className="flex gap-1">
-                                                        {pet.length > 0 ? pet.map(t => (
-                                                            <div key={t} className={`w-6 h-6 rounded-full ${TYPE_COLORS[t]} flex items-center justify-center text-[8px] text-white font-bold shadow-sm`}>{t[0]}</div>
-                                                        )) : <LucideIcon name="plus" size={16} className="text-slate-200" />}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <div className="p-6 bg-pink-50/50 rounded-3xl border-2 border-pink-100">
-                                            <h3 className="text-xs font-black text-pink-400 mb-4 uppercase tracking-widest text-center">正在配置精灵 {activeSlot + 1} 的属性</h3>
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {Object.keys(TYPE_RULES_DATA).map(type => (
-                                                    <button 
-                                                        key={type}
-                                                        onClick={() => toggleTypeInSlot(type)}
-                                                        className={`py-2 rounded-xl font-black text-[10px] transition-all border ${
-                                                            opponentTeam[activeSlot].includes(type) 
-                                                            ? `${TYPE_COLORS[type]} text-white border-transparent shadow-md` 
-                                                            : 'bg-white text-slate-400 border-slate-100'
-                                                        }`}
-                                                    >
-                                                        {type}
-                                                    </button>
-                                                ))}
+                                <h2 className="text-xl font-black mb-6 flex items-center gap-3">
+                                    <LucideIcon name="swords" className="text-pink-500" /> 对手全战队录入
+                                </h2>
+                                <div className="grid grid-cols-3 gap-3 mb-8">
+                                    {opponentTeam.map((pet, idx) => (
+                                        <button 
+                                            key={idx}
+                                            onClick={() => setActiveSlot(idx)}
+                                            className={`h-24 rounded-[2rem] border-2 transition-all flex flex-col items-center justify-center gap-2 ${activeSlot === idx ? 'border-pink-400 bg-pink-50 shadow-md scale-105' : 'border-slate-100 bg-white/50'}`}
+                                        >
+                                            <span className="text-[10px] font-black text-slate-400">PET {idx+1}</span>
+                                            <div className="flex gap-1">
+                                                {pet.length > 0 ? pet.map(t => (
+                                                    <div key={t} className={`w-6 h-6 rounded-full ${TYPE_COLORS[t]} flex items-center justify-center text-[8px] text-white font-bold shadow-sm`}>{t[0]}</div>
+                                                )) : <LucideIcon name="plus" size={16} className="text-slate-200" />}
                                             </div>
-                                            <button onClick={() => setOpponentTeam(Array(6).fill([]))} className="w-full mt-6 py-2 bg-white text-rose-400 text-[10px] font-black rounded-xl border border-rose-100 hover:bg-rose-50 transition-colors">清空全队</button>
-                                        </div>
-                                    </>
-                                )}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="p-6 bg-pink-50/50 rounded-3xl border-2 border-pink-100">
+                                    <h3 className="text-[11px] font-black text-pink-400 mb-4 uppercase tracking-widest text-center">录入精灵 {activeSlot + 1} 的属性</h3>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {Object.keys(TYPE_RULES_DATA).map(type => (
+                                            <button 
+                                                key={type}
+                                                onClick={() => {
+                                                    const newTeam = [...opponentTeam];
+                                                    const cur = newTeam[activeSlot];
+                                                    newTeam[activeSlot] = cur.includes(type) ? cur.filter(t=>t!==type) : (cur.length < 2 ? [...cur, type] : cur);
+                                                    setOpponentTeam(newTeam);
+                                                }}
+                                                className={`py-2 rounded-xl font-black text-[10px] transition-all border ${
+                                                    opponentTeam[activeSlot].includes(type) 
+                                                    ? `${TYPE_COLORS[type]} text-white border-transparent shadow-md` 
+                                                    : 'bg-white text-slate-400 border-slate-100'
+                                                }`}
+                                            >
+                                                {type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button onClick={() => setOpponentTeam(Array(6).fill([]))} className="w-full mt-6 py-2 bg-white text-rose-400 text-[10px] font-black rounded-xl border border-rose-100 hover:bg-rose-50">清空敌方数据</button>
+                                </div>
                             </section>
                         </div>
 
-                        {/* 右侧分析区 */}
+                        {/* 右侧：对位指令报告 */}
                         <div className="lg:col-span-7">
-                            <div className="bg-white/90 rounded-[3.5rem] shadow-2xl shadow-pink-100/50 overflow-hidden flex flex-col min-h-[650px] border border-pink-50">
+                            <div className="bg-white/90 rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col min-h-[750px] border border-pink-50">
                                 <div className="bg-slate-900 p-8 flex items-center justify-between text-white">
                                     <div className="flex items-center gap-4">
                                         <div className="w-14 h-14 rounded-2xl bg-pink-500/20 flex items-center justify-center text-pink-500 shadow-lg">
-                                            <LucideIcon name="award" size={28} fill="currentColor" />
+                                            <LucideIcon name="zap" size={28} fill="currentColor" />
                                         </div>
                                         <div>
-                                            <h3 className="font-black text-2xl tracking-tight">廖洁的战术报告</h3>
-                                            <p className="text-[10px] text-pink-400 uppercase font-black tracking-widest mt-1">Liao Jie Strategy Center</p>
+                                            <h3 className="font-black text-2xl tracking-tight">廖洁的作战指挥部</h3>
+                                            <p className="text-[10px] text-pink-400 font-black tracking-widest mt-1 uppercase">Target-Specific Strategy Report</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => { setDefenders([]); triggerLove(); }} className="w-12 h-12 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors text-pink-400">
-                                        <LucideIcon name="refresh-cw" size={20} />
-                                    </button>
                                 </div>
 
-                                <div className="p-8 grow scrollbar-hide overflow-y-auto">
-                                    {activeTab === 'quick' ? (
-                                        quickResults ? (
-                                            <div className="space-y-8 animate-in slide-in-from-bottom-5">
-                                                {['3', '2'].map(val => quickResults[val].length > 0 && (
-                                                    <div key={val} className={`p-8 rounded-[3rem] border-2 shadow-xl ${val === '3' ? 'bg-pink-50/50 border-pink-100' : 'bg-orange-50/50 border-orange-100'}`}>
-                                                        <h3 className={`font-black text-xl mb-8 flex items-center gap-3 ${val === '3' ? 'text-pink-600' : 'text-orange-600'}`}>
-                                                            <LucideIcon name="sparkles" size={22} fill="currentColor" /> 
-                                                            {val === '3' ? '极致针对 (3.0x)' : '属性克制 (2.0x)'}
-                                                        </h3>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                            {quickResults[val].map(t => (
-                                                                <div key={t} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 group hover:shadow-xl transition-all">
-                                                                    <div className="flex items-center justify-between mb-4">
-                                                                        <span className={`px-5 py-2.5 rounded-2xl text-white font-black text-sm shadow-md ${TYPE_COLORS[t]}`}>{t}</span>
-                                                                        <LucideIcon name="star" className="text-yellow-400" size={16} fill="currentColor" />
-                                                                    </div>
-                                                                    <div className="flex flex-wrap gap-2">
-                                                                        {getRecommendedPets(t).map(name => (
-                                                                            <span key={name} className="px-3 py-1.5 bg-pink-50/30 text-slate-600 text-[11px] font-bold rounded-xl border border-pink-100">{name}</span>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                <div className="p-8 grow scrollbar-hide overflow-y-auto bg-slate-50/30">
+                                    {tacticalReport.mvps.length > 0 ? (
+                                        <div className="space-y-8 animate-in fade-in duration-700">
+                                            
+                                            <div className="p-6 bg-blue-50 border border-blue-100 rounded-3xl text-blue-500 text-xs font-bold leading-relaxed flex items-start gap-3">
+                                                <LucideIcon name="info" size={16} className="shrink-0" />
+                                                <p>报告说明：系统已为你规划好了对位关系。请根据对方派出的精灵编号，选择我方对应的“针对性出战精灵”。如果压力极高，请等待对方出招后再切换入场。</p>
                                             </div>
-                                        ) : (
-                                            <div className="h-full flex flex-col items-center justify-center space-y-6 opacity-40 py-24">
-                                                <LucideIcon name="target" size={64} className="text-pink-200 animate-pulse" />
-                                                <p className="font-bold text-slate-400 tracking-widest">请选择对手属性...</p>
-                                            </div>
-                                        )
-                                    ) : (
-                                        /* 6v6 战队分析结果展示 */
-                                        teamRecommendations.length > 0 ? (
-                                            <div className="space-y-8 animate-in fade-in duration-700">
-                                                <div className="p-6 bg-indigo-50/50 border-2 border-indigo-100 rounded-[2.5rem] shadow-sm mb-8">
-                                                    <h3 className="text-indigo-600 font-black flex items-center gap-2 mb-2"><LucideIcon name="info" size={16} /> 廖洁战术建议</h3>
-                                                    <p className="text-indigo-400 text-xs font-bold leading-relaxed">系统已分析对手 6 只精灵，以下属性对敌方阵容的克制面最广。优先培养并派出的对应属性精灵：</p>
-                                                </div>
 
-                                                {teamRecommendations.map((rec, index) => (
-                                                    <div key={rec.type} className={`p-8 rounded-[3rem] border-2 shadow-xl bg-white border-pink-100 relative overflow-hidden transition-all hover:scale-[1.02]`}>
-                                                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                                                            <span className="text-6xl font-black italic">#{index + 1}</span>
-                                                        </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {tacticalReport.mvps.map((pet, idx) => (
+                                                    <div key={pet.name} className={`p-6 rounded-[2.5rem] bg-white border-2 transition-all hover:scale-[1.02] relative overflow-hidden flex flex-col ${pet.danger <= 1 ? 'border-emerald-100 shadow-emerald-50' : (pet.danger >= 3 ? 'border-rose-100 shadow-rose-50' : 'border-pink-50 shadow-sm')}`}>
                                                         
-                                                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                                                            <div className="flex items-center gap-4">
-                                                                <span className={`px-8 py-3 rounded-3xl text-white font-black text-xl shadow-lg ${TYPE_COLORS[rec.type]}`}>{rec.type}</span>
-                                                                <div>
-                                                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">克制敌方数量</p>
-                                                                    <p className="text-2xl font-black text-pink-500">{rec.count} <span className="text-sm text-slate-400">/ 6</span></p>
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${pet.danger >= 3 ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                                                        {pet.danger >= 3 ? '战术尖刀' : '稳健核心'}
+                                                                    </span>
                                                                 </div>
+                                                                <h4 className="text-xl font-black text-slate-800">{pet.name}</h4>
                                                             </div>
-                                                            <div className="flex items-center gap-2 bg-pink-50 px-4 py-2 rounded-2xl border border-pink-100">
-                                                                <LucideIcon name="zap" size={14} className="text-pink-500" fill="currentColor" />
-                                                                <span className="text-xs font-black text-pink-600">总打击潜力: {rec.potential.toFixed(1)}x</span>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-4">
-                                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                                <LucideIcon name="sparkles" size={14} /> 推荐出战精灵
-                                                            </h4>
-                                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                                {getRecommendedPets(rec.type).map(name => (
-                                                                    <div key={name} className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-700 text-xs font-bold text-center hover:bg-pink-500 hover:text-white transition-colors cursor-default shadow-sm">
-                                                                        {name}
-                                                                    </div>
+                                                            <div className="flex gap-1">
+                                                                {pet.types.map(t => (
+                                                                    <span key={t} className={`w-8 h-8 rounded-xl ${TYPE_COLORS[t]} flex items-center justify-center text-[10px] text-white font-bold shadow-sm`}>{t[0]}</span>
                                                                 ))}
                                                             </div>
                                                         </div>
+
+                                                        {/* 精准对位信息区 */}
+                                                        <div className="bg-slate-50/50 rounded-2xl p-4 mt-auto">
+                                                            <div className="flex items-center gap-2 mb-3">
+                                                                <LucideIcon name="target" size={12} className="text-pink-500" />
+                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">建议针对目标</p>
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {pet.targets.map(num => (
+                                                                    <span key={num} className="px-3 py-1 bg-white text-slate-800 text-[10px] font-black rounded-lg border border-slate-100 shadow-sm">
+                                                                        敌方 Pet {num}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-50">
+                                                            <div className="text-center">
+                                                                <p className="text-[8px] font-black text-slate-300 uppercase">压制面</p>
+                                                                <p className="text-sm font-black text-emerald-500">{pet.targets.length}/6</p>
+                                                            </div>
+                                                            <div className="text-center">
+                                                                <p className="text-[8px] font-black text-slate-300 uppercase">生存压力</p>
+                                                                <p className={`text-sm font-black ${pet.danger >= 3 ? 'text-rose-500' : 'text-blue-500'}`}>
+                                                                    {pet.danger >= 4 ? '极危' : (pet.danger >= 2 ? '较高' : '极稳')}
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                        ) : (
-                                            <div className="h-full flex flex-col items-center justify-center space-y-6 opacity-40 py-24">
-                                                <LucideIcon name="layout-grid" size={64} className="text-pink-200 animate-pulse" />
-                                                <p className="font-bold text-slate-400 tracking-widest text-center">廖洁，请先在左侧录入对手的 6 只精灵属性</p>
-                                            </div>
-                                        )
-                                    )}
-
-                                    {/* 浪漫彩蛋逻辑 */}
-                                    {(defenders.some(d => d === '光' || d === '幻') || opponentTeam.some(p => p.includes('光') || p.includes('幻'))) && (
-                                        <div className="p-6 mt-10 bg-gradient-to-r from-pink-500 to-rose-400 rounded-3xl text-white text-center shadow-xl animate-bounce border-2 border-white/50">
-                                            <p className="font-black text-base tracking-widest">✨ 廖洁发现彩蛋了！你是光，也是我最美的幻想 ✨</p>
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex flex-col items-center justify-center opacity-40 py-40 text-center">
+                                            <LucideIcon name="layout-grid" size={84} className="text-pink-200 animate-pulse mb-6" />
+                                            <p className="font-black text-slate-400 tracking-widest text-sm leading-relaxed">
+                                                廖洁，在左侧录入对手的 6 只精灵属性<br/>
+                                                系统将为你精准匹配“克制靶点”
+                                            </p>
                                         </div>
                                     )}
                                 </div>
 
                                 <footer className="p-8 border-t border-pink-50 text-center bg-white/50 text-[10px] font-black text-pink-300 uppercase tracking-[0.4em]">
-                                    Tactical 6v6 Edition · Dedicated To Liao Jie
+                                    Match-up Logic Engine · Designed for Liao Jie
                                 </footer>
                             </div>
                         </div>
                     </main>
-                    
-                    <div className="mt-12 text-center text-slate-300 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">
-                        " 因为有你，洛克王国也变得如此温柔 "
-                    </div>
                 </div>
             );
         }
