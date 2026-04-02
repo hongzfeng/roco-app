@@ -81,7 +81,8 @@
         };
 
         function App() {
-            const [opponentTeam, setOpponentTeam] = useState(Array(6).fill(null).map(() => ({ types: [], confirmedName: null })));
+            // opponentTeam 结构更新：包含 userCounter (用户自主点将)
+            const [opponentTeam, setOpponentTeam] = useState(Array(6).fill(null).map((_, i) => ({ originalIndex: i, types: [], confirmedName: null, userCounter: null })));
             const [activeSlot, setActiveSlot] = useState(0);
 
             // 获取乘数
@@ -94,9 +95,9 @@
                 return 1;
             };
 
-            // 数据清洗
+            // 数据清洗：加入了索引，保留原始顺序（进化链通常靠后）
             const processedPets = useMemo(() => {
-                return PET_DB.map(p => {
+                return PET_DB.map((p, idx) => {
                     const clean = new Set();
                     p.types.forEach(tg => {
                         const items = typeof tg === 'string' ? tg.split(',') : [tg];
@@ -106,7 +107,7 @@
                             if (TYPE_DATA[s]) clean.add(s);
                         });
                     });
-                    return { name: p.name, types: Array.from(clean) };
+                    return { name: p.name, types: Array.from(clean).sort(), dbIndex: idx };
                 });
             }, []);
 
@@ -115,46 +116,21 @@
                 return processedPets.filter(p => types.every(t => p.types.includes(t))).slice(0, 30);
             };
 
-            // === V9.0 动态战况推演引擎 ===
+            // === V10.0 动态战况推演引擎 (解决去重与自主点将) ===
             const battleReport = useMemo(() => {
-                const filledOpp = opponentTeam.map((slot, index) => {
+                const filledOpp = opponentTeam.filter(p => p.types.length > 0).map((slot, index) => {
                     const matches = getMatchingPets(slot.types);
                     return { 
                         ...slot,
-                        index: index + 1, 
+                        displayIndex: index + 1, 
                         displayName: slot.confirmedName || (matches.length > 0 ? matches[0].name : `未知属性宠`)
                     };
-                }).filter(p => p.types.length > 0);
+                });
                 
                 if (filledOpp.length === 0) return { checklist: [], lineup: [] };
+                const totalEnemies = filledOpp.length;
 
-                // 1. 组建洁宝的 6 只“常驻推荐首发”（通杀队）
-                // 先算出每只精灵的环境总得分
-                const overallScores = processedPets.map(p => {
-                    let totalScore = 0;
-                    filledOpp.forEach(opp => {
-                        let myMaxAtk = 0; p.types.forEach(myT => { let m = 1; opp.types.forEach(oppT => m *= getRawMult(myT, oppT)); if(m>myMaxAtk) myMaxAtk = m; });
-                        let oppMaxAtk = 0; opp.types.forEach(oppT => { let m = 1; p.types.forEach(myT => m *= getRawMult(oppT, myT)); if(m>oppMaxAtk) oppMaxAtk = m; });
-                        // 综合分：能打疼对面加分，被对面打扣分
-                        if (myMaxAtk > 1 && oppMaxAtk < 1) totalScore += 100;
-                        else if (myMaxAtk > 1 && oppMaxAtk === 1) totalScore += 50;
-                        else if (myMaxAtk === 1 && oppMaxAtk < 1) totalScore += 20;
-                        else if (myMaxAtk > 1 && oppMaxAtk > 1) totalScore += 5; // 互秒
-                        else totalScore -= 50;
-                    });
-                    return { ...p, totalScore };
-                }).filter(p => p.totalScore > 0).sort((a, b) => b.totalScore - a.totalScore);
-
-                const lineup = [];
-                const seenLineup = new Set();
-                for (let p of overallScores) {
-                    if (!seenLineup.has(p.name) && lineup.length < 6) {
-                        lineup.push(p); seenLineup.add(p.name);
-                    }
-                }
-                const lineupNames = lineup.map(p => p.name);
-
-                // 2. 为敌方每一个槽位，生成【梯队式】应对锦囊
+                // 1. 为敌方每一个槽位，生成【去重后】的Top 10应对锦囊
                 const checklist = filledOpp.map(opp => {
                     const scoredPets = processedPets.map(myPet => {
                         let myMaxAtk = 0;
@@ -171,65 +147,115 @@
                             if (mult > oppMaxAtk) oppMaxAtk = mult;
                         });
 
-                        // 战术标签判定 (T0 -> T3)
-                        let tacticLabel = '';
-                        let tacticColor = '';
-                        let score = 0;
+                        // 战术标签判定
+                        let tacticLabel = ''; let tacticColor = ''; let score = 0;
+                        if (myMaxAtk > 1 && oppMaxAtk < 1) { tacticLabel = '完美克制'; tacticColor = 'bg-emerald-500 text-white border-none'; score = 1000 + myMaxAtk*100; } 
+                        else if (myMaxAtk > 1 && oppMaxAtk === 1) { tacticLabel = '优势换血'; tacticColor = 'bg-blue-500 text-white border-none'; score = 500 + myMaxAtk*100; } 
+                        else if (myMaxAtk === 1 && oppMaxAtk < 1) { tacticLabel = '稳健联防'; tacticColor = 'bg-teal-500 text-white border-none'; score = 300 - oppMaxAtk*10; } 
+                        else if (myMaxAtk > 1 && oppMaxAtk > 1) { tacticLabel = '高危互秒'; tacticColor = 'bg-rose-500 text-white border-none'; score = 100 + myMaxAtk*10; } 
+                        else { tacticLabel = '劣势刮痧'; tacticColor = 'bg-slate-200 text-slate-500 border border-slate-300'; score = -100; }
 
-                        if (myMaxAtk > 1 && oppMaxAtk < 1) {
-                            tacticLabel = '完美克制'; tacticColor = 'bg-emerald-500 text-white'; score = 1000 + myMaxAtk*100;
-                        } else if (myMaxAtk > 1 && oppMaxAtk === 1) {
-                            tacticLabel = '优势换血'; tacticColor = 'bg-blue-500 text-white'; score = 500 + myMaxAtk*100;
-                        } else if (myMaxAtk === 1 && oppMaxAtk < 1) {
-                            tacticLabel = '稳健联防'; tacticColor = 'bg-teal-500 text-white'; score = 300 - oppMaxAtk*10;
-                        } else if (myMaxAtk > 1 && oppMaxAtk > 1) {
-                            tacticLabel = '高危互秒'; tacticColor = 'bg-rose-500 text-white'; score = 100 + myMaxAtk*10;
-                        } else {
-                            tacticLabel = '劣势刮痧'; tacticColor = 'bg-slate-400 text-white'; score = -100;
-                        }
-
-                        // 如果这个宠物正好在洁宝的首发推荐名单里，加分优先展示！
-                        const isInLineup = lineupNames.includes(myPet.name);
-                        if (isInLineup) score += 2000; 
-
-                        return { ...myPet, myMaxAtk, oppMaxAtk, score, tacticLabel, tacticColor, isInLineup };
+                        return { ...myPet, myMaxAtk, oppMaxAtk, score, tacticLabel, tacticColor };
                     })
-                    .filter(p => p.score > 0) // 只保留能打或者能抗的
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, 3); // 提取前3个不同定位的应对方案
+                    .filter(p => p.score > 0) // 过滤掉完全没用的
+                    .sort((a, b) => {
+                        if (b.score !== a.score) return b.score - a.score;
+                        return b.dbIndex - a.dbIndex; // 分数相同时，优先取图鉴后面的（通常是最终进化型）
+                    });
 
-                    return { opp, counters: scoredPets };
+                    // 严格去重：同一种属性组合，只给 1 个最强的（解决喵喵/魔力猫霸榜问题）
+                    const top10Diverse = [];
+                    const typeCount = {};
+                    for (let pet of scoredPets) {
+                        const typeKey = pet.types.join(',');
+                        if (!typeCount[typeKey]) {
+                            top10Diverse.push(pet);
+                            typeCount[typeKey] = true;
+                        }
+                        if (top10Diverse.length >= 10) break;
+                    }
+
+                    return { opp, counters: top10Diverse };
                 });
 
-                return { checklist, lineup };
+                // 2. 计算全局覆盖最优解 (基于当前录入的敌人数量)
+                const coverageMvps = processedPets.map(p => {
+                    let hitCount = 0;
+                    filledOpp.forEach(opp => {
+                        const canHit = p.types.some(myT => {
+                            let m = 1.0; opp.types.forEach(oppT => m *= getRawMult(myT, oppT));
+                            return m > 1;
+                        });
+                        if (canHit) hitCount++;
+                    });
+                    return { ...p, hitCount };
+                }).filter(p => p.hitCount > 0).sort((a, b) => {
+                    if (b.hitCount !== a.hitCount) return b.hitCount - a.hitCount;
+                    return b.dbIndex - a.dbIndex; // 同样偏好最终进化型
+                });
+
+                // 3. 组建洁宝的 6 只出战队伍
+                const lineup = [];
+                const seenNames = new Set();
+                
+                // 优先把【洁宝在剧本里手动选择】的，或者是【默认第一顺位】的加入队伍
+                checklist.forEach((item) => {
+                    const chosenName = item.opp.userCounter || item.counters[0].name;
+                    if (!seenNames.has(chosenName)) {
+                        const petInfo = processedPets.find(p => p.name === chosenName);
+                        if (petInfo) {
+                            // 计算这只精灵在当前阵容的覆盖率
+                            const hitCount = coverageMvps.find(c => c.name === chosenName)?.hitCount || 0;
+                            lineup.push({ ...petInfo, hitCount, isChosen: !!item.opp.userCounter });
+                            seenNames.add(chosenName);
+                        }
+                    }
+                });
+
+                // 如果还不足 6 只，用全局覆盖率最高的精灵填补
+                for (let p of coverageMvps) {
+                    if (lineup.length >= 6) break;
+                    if (!seenNames.has(p.name)) {
+                        lineup.push({ ...p, isChosen: false });
+                        seenNames.add(p.name);
+                    }
+                }
+
+                return { checklist, lineup, totalEnemies };
             }, [opponentTeam, processedPets]);
 
+            // 交互：录入属性
             const toggleType = (type) => {
                 const newTeam = [...opponentTeam];
                 const cur = newTeam[activeSlot].types;
                 if (cur.includes(type)) newTeam[activeSlot].types = cur.filter(t => t !== type);
                 else if (cur.length < 2) newTeam[activeSlot].types = [...cur, type];
+                
                 newTeam[activeSlot].confirmedName = null;
+                newTeam[activeSlot].userCounter = null; // 属性变了，清空针对方案
+                setOpponentTeam(newTeam);
+            };
+
+            // 交互：用户点将 (替换推荐)
+            const selectCounterForSlot = (originalIndex, counterName) => {
+                const newTeam = [...opponentTeam];
+                newTeam[originalIndex].userCounter = counterName;
                 setOpponentTeam(newTeam);
             };
 
             return (
-                <div className="max-w-7xl mx-auto p-4 md:p-8 relative min-h-screen">
-                    <header className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
+                <div className="max-w-7xl mx-auto p-4 md:p-8 relative min-h-screen pb-20">
+                    <header className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
                         <div className="flex items-center gap-5">
                             <div className="bg-pink-500 p-4 rounded-[2.5rem] shadow-lg shadow-pink-200 text-white pulse-border">
                                 <LucideIcon name="crown" size={32} fill="white" />
                             </div>
                             <div>
-                                <h1 className="text-4xl font-black tracking-tighter text-slate-800">洁宝专属 <span className="text-pink-500">·</span> 动态指挥所</h1>
+                                <h1 className="text-4xl font-black tracking-tighter text-slate-800">洁宝专属 <span className="text-pink-500">·</span> 自选指挥所</h1>
                                 <p className="text-pink-400 font-bold text-xs mt-1 uppercase tracking-widest flex items-center gap-2">
-                                    <LucideIcon name="shield-check" size={14} fill="#ec4899" /> 6v6 实战推演系统 · V9.0
+                                    <LucideIcon name="shield-check" size={14} fill="#ec4899" /> 智能去重 · 10大顺位自选 · V10.0
                                 </p>
                             </div>
-                        </div>
-                        <div className="bg-white/80 backdrop-blur px-6 py-3 rounded-2xl border border-pink-100 flex items-center gap-3">
-                            <span className="text-xs font-black text-pink-500 italic">“敌方情报实时解析中，洁宝必胜！”</span>
-                            <LucideIcon name="activity" size={16} className="text-pink-500 animate-pulse" />
                         </div>
                     </header>
 
@@ -238,12 +264,12 @@
                         <div className="lg:col-span-4 space-y-6">
                             <section className="glass-card p-6 rounded-[3rem] shadow-2xl border border-white">
                                 <h2 className="text-lg font-black mb-6 flex items-center gap-3 text-slate-800">
-                                    <LucideIcon name="search" className="text-pink-500" /> 第一步：锁定敌军
+                                    <LucideIcon name="search" className="text-pink-500" /> 1. 录入敌方阵容
                                 </h2>
                                 
                                 <div className="grid grid-cols-2 gap-3 mb-8">
                                     {opponentTeam.map((slot, idx) => (
-                                        <button key={idx} onClick={() => setActiveSlot(idx)} className={`h-24 rounded-[1.5rem] border-2 transition-all flex flex-col items-center justify-center p-2 relative ${activeSlot === idx ? 'border-pink-500 bg-pink-50 shadow-md scale-105' : 'border-slate-100 bg-white/50 hover:bg-white'}`}>
+                                        <button key={idx} onClick={() => setActiveSlot(idx)} className={`h-24 rounded-[1.5rem] border-2 transition-all flex flex-col items-center justify-center p-2 relative ${activeSlot === idx ? 'border-pink-500 bg-pink-50 shadow-md scale-105 z-10' : 'border-slate-100 bg-white/50 hover:bg-white'}`}>
                                             <span className="text-[8px] font-black text-slate-300 absolute top-2 tracking-widest">槽位 {idx+1}</span>
                                             <div className="flex gap-1 mb-1 mt-4">
                                                 {slot.types.length > 0 ? slot.types.map(t => (
@@ -267,7 +293,7 @@
 
                                     {opponentTeam[activeSlot].types.length > 0 && (
                                         <div className="mt-2 pt-4 border-t border-pink-100 animate-in slide-in-from-top-2">
-                                            <p className="text-[9px] font-black text-pink-500 uppercase mb-3 text-center flex items-center justify-center gap-1"><LucideIcon name="mouse-pointer-click" size={10}/> 点击图鉴精准锁定</p>
+                                            <p className="text-[9px] font-black text-pink-500 uppercase mb-3 text-center flex items-center justify-center gap-1"><LucideIcon name="mouse-pointer-click" size={10}/> 点击精准锁定身份</p>
                                             <div className="flex flex-wrap gap-1.5 justify-center max-h-40 overflow-y-auto scrollbar-hide">
                                                 {getMatchingPets(opponentTeam[activeSlot].types).map(p => (
                                                     <button key={p.name} onClick={() => {
@@ -276,11 +302,10 @@
                                                         setOpponentTeam(newTeam);
                                                     }} className={`px-3 py-1.5 text-[9px] font-bold rounded-lg transition-all ${opponentTeam[activeSlot].confirmedName === p.name ? 'bg-pink-500 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:border-pink-300'}`}>{p.name}</button>
                                                 ))}
-                                                {getMatchingPets(opponentTeam[activeSlot].types).length === 0 && <span className="text-[9px] text-slate-400 italic">暂无匹配</span>}
                                             </div>
                                         </div>
                                     )}
-                                    <button onClick={() => setOpponentTeam(Array(6).fill(null).map(() => ({ types: [], confirmedName: null })))} className="w-full mt-6 py-2.5 bg-white text-rose-500 text-[10px] font-black rounded-xl border border-rose-100 hover:bg-rose-50 flex items-center justify-center gap-2"><LucideIcon name="trash-2" size={12} /> 清空沙盘重演</button>
+                                    <button onClick={() => setOpponentTeam(Array(6).fill(null).map((_, i) => ({ originalIndex: i, types: [], confirmedName: null, userCounter: null })))} className="w-full mt-6 py-2.5 bg-white text-rose-500 text-[10px] font-black rounded-xl border border-rose-100 hover:bg-rose-50 flex items-center justify-center gap-2"><LucideIcon name="trash-2" size={12} /> 清空沙盘重演</button>
                                 </div>
                             </section>
                         </div>
@@ -290,25 +315,26 @@
                             
                             {/* 1. 洁宝的推荐队伍 */}
                             {battleReport.lineup.length > 0 && (
-                                <div className="bg-white/90 rounded-[3.5rem] shadow-2xl p-8 border border-emerald-100 animate-in fade-in">
+                                <div className="bg-white/90 rounded-[3.5rem] shadow-2xl p-8 border border-emerald-100 animate-in fade-in sticky top-4 z-50 backdrop-blur-md">
                                     <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200"><LucideIcon name="award" fill="white" /></div>
                                             <div>
-                                                <h3 className="text-xl font-black text-slate-800 tracking-tighter">第二步：洁宝携带首发阵容</h3>
-                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">系统智能构建的万金油队伍</p>
+                                                <h3 className="text-xl font-black text-slate-800 tracking-tighter">洁宝的出战阵容</h3>
+                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mt-1">包含自选神将与系统补位</p>
                                             </div>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                                         {battleReport.lineup.map((p, i) => (
-                                            <div key={p.name} className="flex flex-col items-center gap-2 p-3 bg-emerald-50/50 border border-emerald-100 rounded-[1.5rem] shadow-sm relative overflow-hidden group hover:bg-emerald-100 transition-colors">
-                                                <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500/10 rounded-bl-full"></div>
-                                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center border border-emerald-100 shadow-inner font-black text-emerald-600 text-[10px]">{i+1}</div>
+                                            <div key={p.name} className={`flex flex-col items-center gap-2 p-3 border rounded-[1.5rem] shadow-sm relative overflow-hidden transition-all ${p.isChosen ? 'bg-pink-50/80 border-pink-200' : 'bg-emerald-50/50 border-emerald-100'}`}>
+                                                {p.isChosen && <div className="absolute top-1 right-1 text-[8px] bg-pink-500 text-white px-1.5 py-0.5 rounded-md font-bold shadow-sm">自选</div>}
+                                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center border shadow-inner font-black text-[10px] mt-1" style={{ borderColor: p.isChosen ? '#fbcfe8' : '#d1fae5', color: p.isChosen ? '#ec4899' : '#059669' }}>{i+1}</div>
                                                 <p className="text-[11px] font-black text-slate-700 truncate w-full text-center">{p.name}</p>
                                                 <div className="flex gap-0.5">
                                                     {p.types.map(t => <div key={t} className={`w-2.5 h-2.5 rounded-full ${TYPE_DATA[t]?.color || 'bg-gray-400'}`}></div>)}
                                                 </div>
+                                                <div className="mt-1 text-[8px] font-black text-slate-400">覆盖: <span className="text-emerald-500">{p.hitCount}/{battleReport.totalEnemies}</span></div>
                                             </div>
                                         ))}
                                     </div>
@@ -319,80 +345,97 @@
                             <div className="bg-white/90 rounded-[3.5rem] shadow-2xl overflow-hidden border border-blue-50">
                                 <div className="bg-slate-900 p-8 flex items-center gap-4 text-white">
                                     <LucideIcon name="swords" size={28} className="text-blue-400" />
-                                    <div><h3 className="font-black text-2xl tracking-tighter">第三步：动态战况拆解</h3><p className="text-[10px] text-blue-400 font-black tracking-widest mt-1">Real-time Combat Strategy</p></div>
+                                    <div><h3 className="font-black text-2xl tracking-tighter">针对性实战剧本 (可自选)</h3><p className="text-[10px] text-blue-400 font-black tracking-widest mt-1">Combat Strategy & Top 10 Selection</p></div>
                                 </div>
 
-                                <div className="p-8 bg-slate-50/30 min-h-[500px]">
+                                <div className="p-6 sm:p-8 bg-slate-50/30 min-h-[500px]">
                                     {battleReport.checklist.length > 0 ? (
-                                        <div className="space-y-8">
-                                            <div className="p-5 bg-blue-50 border border-blue-100 rounded-3xl text-blue-600 text-xs font-bold leading-relaxed mb-6 flex items-start gap-3">
+                                        <div className="space-y-10">
+                                            <div className="p-5 bg-blue-50 border border-blue-100 rounded-3xl text-blue-600 text-xs font-bold leading-relaxed flex items-start gap-3">
                                                 <LucideIcon name="info" size={20} className="shrink-0" />
-                                                洁宝，这是根据目前收集到的敌方情报生成的【应对锦囊】。带皇冠 👑 的是你的首发宠物，可以直接切上场！
+                                                洁宝，下方每个敌人提供了 10 个去重后的最强针对方案。大卡片是你当前决定的出战宠物，点击下方【备用清单】可以直接替换它！
                                             </div>
 
-                                            <div className="grid grid-cols-1 gap-6">
-                                                {battleReport.checklist.map((item, idx) => (
-                                                    <div key={idx} className="p-6 rounded-[2.5rem] bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 animate-in slide-in-from-right-5 relative overflow-hidden group">
+                                            <div className="grid grid-cols-1 gap-8">
+                                                {battleReport.checklist.map((item) => {
+                                                    // 当前用户选择的宠物，或者默认第一顺位
+                                                    const selectedCounterName = item.opp.userCounter || item.counters[0].name;
+                                                    const selectedCounterInfo = item.counters.find(c => c.name === selectedCounterName) || item.counters[0];
+                                                    const isHighRisk = selectedCounterInfo.oppMaxAtk > 1;
+
+                                                    return (
+                                                    <div key={item.opp.originalIndex} className={`p-6 sm:p-8 rounded-[2.5rem] bg-white border-2 transition-all relative overflow-hidden ${isHighRisk ? 'border-rose-200 shadow-md high-risk-pulse' : 'border-slate-200 shadow-sm hover:border-pink-200'}`}>
                                                         
-                                                        {/* 左侧：悬赏令（敌方情报） */}
-                                                        <div className="md:w-1/3 bg-slate-50 rounded-[2rem] p-5 border border-slate-100 flex flex-col items-center justify-center text-center relative">
-                                                            <div className="absolute top-3 left-3 px-2 py-1 bg-slate-800 text-white text-[8px] font-black rounded-lg">槽位 {item.opp.index}</div>
-                                                            <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center mb-3 shadow-inner">
-                                                                <LucideIcon name="skull" size={24} className="text-slate-400" />
+                                                        {isHighRisk && (
+                                                            <div className="absolute top-0 right-0 bg-rose-500 text-white px-4 py-1.5 rounded-bl-2xl text-[9px] font-black uppercase flex items-center gap-1 shadow-md z-10">
+                                                                <LucideIcon name="alert-triangle" size={10} /> 高危互秒，注意保护
                                                             </div>
-                                                            <h4 className="text-lg font-black text-slate-800 mb-2">{item.opp.displayName}</h4>
-                                                            <div className="flex justify-center gap-1">
-                                                                {item.opp.types.map(t => <span key={t} className={`px-2 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm ${TYPE_DATA[t]?.color}`}>{t}</span>)}
+                                                        )}
+
+                                                        {/* 剧本主语 */}
+                                                        <div className="flex flex-col gap-4 mb-6 relative z-10">
+                                                            <div className="flex items-center gap-2 text-slate-500 font-black text-sm sm:text-base">
+                                                                <span>当对面</span>
+                                                                <span className="px-3 py-1.5 bg-slate-800 text-white rounded-xl shadow-sm tracking-widest border-2 border-slate-700">【{item.opp.displayName}】</span>
+                                                                <span>上场时</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-slate-500 font-black text-sm sm:text-base">
+                                                                <LucideIcon name="corner-down-right" className="text-pink-400" />
+                                                                <span>洁宝立刻派</span>
+                                                                <span className="px-4 py-2 bg-pink-500 text-white rounded-xl shadow-lg border-2 border-pink-300 text-lg tracking-widest">【{selectedCounterInfo.name}】</span>
+                                                                <span>迎战！</span>
                                                             </div>
                                                         </div>
 
-                                                        {/* 右侧：应对锦囊（我方出阵） */}
-                                                        <div className="md:w-2/3 flex flex-col gap-3 justify-center">
-                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                                                                <LucideIcon name="corner-down-right" size={14} className="text-pink-400" /> 我方应对锦囊 (前3顺位)
-                                                            </p>
-                                                            
-                                                            {item.counters.map((counter, cIdx) => (
-                                                                <div key={counter.name} className={`flex items-center justify-between p-3 rounded-2xl border ${cIdx === 0 ? 'bg-pink-50 border-pink-200 shadow-sm' : 'bg-white border-slate-100'}`}>
-                                                                    
-                                                                    <div className="flex items-center gap-3">
-                                                                        <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black ${cIdx === 0 ? 'bg-pink-500 text-white' : 'bg-slate-200 text-slate-500'}`}>{cIdx + 1}</span>
-                                                                        <div className="flex flex-col">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <span className={`font-black ${cIdx === 0 ? 'text-pink-600 text-base' : 'text-slate-700 text-sm'}`}>{counter.name}</span>
-                                                                                {counter.isInLineup && <LucideIcon name="crown" size={14} className="text-yellow-500" fill="currentColor" />}
-                                                                            </div>
-                                                                            <div className="flex items-center gap-2 mt-0.5">
-                                                                                <span className={`px-2 py-0.5 rounded-md text-[8px] font-bold shadow-sm ${counter.tacticColor}`}>{counter.tacticLabel}</span>
-                                                                                <div className="flex gap-0.5">{counter.types.map(t=><div key={t} className={`w-2 h-2 rounded-full ${TYPE_DATA[t]?.color}`}></div>)}</div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div className="flex items-center gap-3 text-right">
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-[8px] font-black text-slate-400 uppercase">我方伤害</span>
-                                                                            <span className="text-xs font-black text-emerald-500">{counter.myMaxAtk}x</span>
-                                                                        </div>
-                                                                        <div className="w-px h-6 bg-slate-200"></div>
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-[8px] font-black text-slate-400 uppercase">受击伤害</span>
-                                                                            <span className={`text-xs font-black ${counter.oppMaxAtk > 1 ? 'text-rose-500' : 'text-blue-500'}`}>{counter.oppMaxAtk}x</span>
-                                                                        </div>
-                                                                    </div>
-
+                                                        {/* 数据支持面板 */}
+                                                        <div className="bg-slate-50 rounded-[2rem] p-5 flex flex-wrap items-center justify-between gap-4 border border-slate-100 mb-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className={`px-3 py-1 rounded-lg text-[10px] font-black shadow-sm ${selectedCounterInfo.tacticColor}`}>{selectedCounterInfo.tacticLabel}</span>
+                                                                <div className="flex gap-1">{selectedCounterInfo.types.map(t=><div key={t} className={`w-3 h-3 rounded-full ${TYPE_DATA[t]?.color || 'bg-gray-400'} shadow-sm`}></div>)}</div>
+                                                            </div>
+                                                            <div className="flex items-center gap-6">
+                                                                <div className="flex flex-col items-center">
+                                                                    <span className="text-[9px] font-black text-slate-400 uppercase">我方伤害</span>
+                                                                    <span className="text-sm font-black text-emerald-500">{selectedCounterInfo.myMaxAtk}x</span>
                                                                 </div>
-                                                            ))}
+                                                                <div className="w-px h-6 bg-slate-200"></div>
+                                                                <div className="flex flex-col items-center">
+                                                                    <span className="text-[9px] font-black text-slate-400 uppercase">受击伤害</span>
+                                                                    <span className={`text-sm font-black ${isHighRisk ? 'text-rose-500' : 'text-blue-500'}`}>{selectedCounterInfo.oppMaxAtk}x</span>
+                                                                </div>
+                                                            </div>
                                                         </div>
+
+                                                        {/* 备用 10 大清单 (洁宝自选区) */}
+                                                        <div className="pt-5 border-t border-slate-100">
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1"><LucideIcon name="list-ordered" size={12} className="text-pink-400"/> 备用针对清单 (点击可将它换作首发)</p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {item.counters.map((c, i) => {
+                                                                    if (c.name === selectedCounterName) return null; // 隐藏当前已选的
+                                                                    return (
+                                                                        <button 
+                                                                            key={c.name}
+                                                                            onClick={() => selectCounterForSlot(item.opp.originalIndex, c.name)}
+                                                                            className="px-3 py-2 bg-white text-slate-600 text-[10px] font-bold rounded-xl border border-slate-200 shadow-sm hover:border-pink-300 hover:text-pink-500 hover:bg-pink-50 transition-all flex items-center gap-1.5"
+                                                                        >
+                                                                            <span className="text-[8px] opacity-60">#{i+1}</span> 
+                                                                            {c.name} 
+                                                                            <span className="text-[8px] text-slate-400">({c.myMaxAtk}x打)</span>
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+
                                                     </div>
-                                                ))}
+                                                )})}
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="h-full flex flex-col items-center justify-center opacity-40 py-32 text-center">
                                             <LucideIcon name="book-dashed" size={80} className="text-slate-300 mb-6" />
                                             <h4 className="text-xl font-black text-slate-400 mb-2">洁宝，请录入对手情报</h4>
-                                            <p className="font-bold text-slate-400 text-xs tracking-widest">这里会实时生成全梯队的“斩杀锦囊”</p>
+                                            <p className="font-bold text-slate-400 text-xs tracking-widest">这里会为你生成 10 大梯队的自定义斩杀锦囊</p>
                                         </div>
                                     )}
                                 </div>
@@ -400,11 +443,11 @@
                         </div>
                     </main>
 
-                    <footer className="mt-16 py-8 text-center border-t border-white/50">
-                        <p className="text-[10px] font-black text-pink-300 uppercase tracking-[0.5em] mb-2">Dynamic Combat Analysis · For Jie Bao</p>
+                    <footer className="mt-16 py-8 text-center">
+                        <p className="text-[10px] font-black text-pink-300 uppercase tracking-[0.5em] mb-2">V10 Selection Board · For Jie Bao</p>
                         <div className="flex justify-center gap-2 items-center">
                              <LucideIcon name="heart" size={14} fill="#f9a8d4" className="text-pink-300" />
-                             <span className="text-xs font-black text-slate-400 italic">“洁宝的每一场对决，我都在场下为你指挥。”</span>
+                             <span className="text-xs font-black text-slate-400 italic">“洁宝选谁出战，谁就是最强的神将！”</span>
                              <LucideIcon name="heart" size={14} fill="#f9a8d4" className="text-pink-300" />
                         </div>
                     </footer>
