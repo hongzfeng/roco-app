@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>廖洁专属 · 洛克王国爱意助手</title>
-    <!-- 核心依赖 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 核心依赖（选用稳定镜像） -->
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.12/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.321.0/dist/umd/lucide.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
         body { 
@@ -20,7 +20,7 @@
             color: #1e293b;
         }
         .glass-card {
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 20px 40px -10px rgba(244, 114, 182, 0.15);
@@ -37,9 +37,2319 @@
     <script type="text/babel">
         const { useState, useMemo, useEffect, useRef } = React;
 
-        // === 核心配置：使用 jsDelivr 加速连接你的 GitHub 仓库 ===
-        const RULES_URL = "https://cdn.jsdelivr.net/gh/hongzfeng/roco-data@main/official_type_rules.json"; 
-        const PETS_URL = "https://cdn.jsdelivr.net/gh/hongzfeng/roco-data@main/roco_pets_cards.json";
+        // ==========================================
+        // 1. 数据区：全量内置官方克制规则 (official_type_rules.json)
+        // ==========================================
+        const TYPE_RULES_DATA = {
+            "普通": { "strong": [""], "resist": ["地", "幽", "机械"], "weak": ["武"], "vulnerable": ["幽"] },
+            "草": { "strong": ["水", "光", "地"], "resist": ["火", "龙", "毒", "虫", "翼", "机械"], "weak": ["火", "冰", "毒", "虫", "翼"], "vulnerable": ["水", "地", "电", "光"] },
+            "火": { "strong": ["草", "冰", "虫", "机械"], "resist": ["水", "地", "龙"], "weak": ["水", "地"], "vulnerable": ["草", "冰", "虫", "萌", "机械"] },
+            "水": { "strong": ["火", "地", "机械"], "resist": ["草", "冰", "龙"], "weak": ["草", "电"], "vulnerable": ["火", "机械"] },
+            "光": { "strong": ["幽", "恶"], "resist": ["草", "冰"], "weak": ["草", "幽"], "vulnerable": ["恶", "幻"] },
+            "地": { "strong": ["火", "冰", "电", "毒"], "resist": ["草", "武"], "weak": ["草", "水", "冰", "武", "机械"], "vulnerable": ["普通", "火", "电", "毒", "翼"] },
+            "冰": { "strong": ["草", "地", "龙", "翼"], "resist": ["火", "冰", "机械"], "weak": ["火", "地", "武", "机械"], "vulnerable": ["水", "冰", "光"] },
+            "龙": { "strong": ["龙"], "resist": ["机械"], "weak": ["冰", "龙", "萌"], "vulnerable": ["草", "火", "水", "电", "翼"] },
+            "电": { "strong": ["水", "翼"], "resist": ["草", "地", "龙", "电"], "weak": ["地"], "vulnerable": ["电", "翼", "机械"] },
+            "毒": { "strong": ["草", "萌"], "resist": ["地", "毒", "幽", "机械"], "weak": ["地", "恶", "幻"], "vulnerable": ["草", "毒", "虫", "武", "萌"] },
+            "虫": { "strong": ["草", "恶", "幻"], "resist": ["火", "毒", "武", "翼", "萌", "幽", "机械"], "weak": ["火", "翼"], "vulnerable": ["草", "武"] },
+            "武": { "strong": ["普通", "地", "冰", "恶", "机械"], "resist": ["毒", "虫", "翼", "萌", "幽", "幻"], "weak": ["翼", "萌", "幻"], "vulnerable": ["地", "虫", "恶"] },
+            "翼": { "strong": ["草", "虫", "武"], "resist": ["地", "龙", "电", "机械"], "weak": ["冰", "电"], "vulnerable": ["草", "虫", "武"] },
+            "萌": { "strong": ["龙", "武", "恶"], "resist": ["火", "毒", "机械"], "weak": ["毒", "恶", "机械"], "vulnerable": ["虫", "武"] },
+            "幽": { "strong": ["光", "幽", "幻"], "resist": ["普通", "恶"], "weak": ["光", "幽", "恶"], "vulnerable": ["普通", "毒", "虫", "武"] },
+            "恶": { "strong": ["毒", "萌", "幽"], "resist": ["光", "武", "恶"], "weak": ["光", "虫", "武", "萌"], "vulnerable": ["幽", "恶"] },
+            "机械": { "strong": ["地", "冰", "萌"], "resist": ["火", "水", "电", "机械"], "weak": ["火", "水", "武"], "vulnerable": ["普通", "草", "冰", "龙", "毒", "虫", "翼", "萌", "机械", "幻"] },
+            "幻": { "strong": ["毒", "武"], "resist": ["光", "机械", "幻"], "weak": ["虫", "幽"], "vulnerable": ["武", "幻"] }
+        };
+
+        // ==========================================
+        // 2. 数据区：全量内置精灵图鉴 (roco_pets_cards.json)
+        // ==========================================
+        const PET_DATA = [
+  {
+    "name": "迪莫",
+    "types": [
+      "光"
+    ]
+  },
+  {
+    "name": "喵喵",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "喵呜",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "魔力猫",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "火花",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "焰火",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "火神",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "水蓝蓝",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "波波拉",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "水灵",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "鸭吉吉",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "鸭吉吉",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "鸭吉吉",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "鸭吉吉",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "鸭吉吉",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "鸭吉吉",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "板板壳",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "咔咔壳",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "水泡壳",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "锥尾羊",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "铃兰羊",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "花影羚羊",
+    "types": [
+      "幽, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "雪绒鸟",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "冬羽雀",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "岚鸟",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "小灵菇",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "幻灵菇",
+    "types": [
+      "幽, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "幻影灵菇",
+    "types": [
+      "幽, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "石肤蜥",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "石刺蜥",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "石冠王蜥",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "布是石",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "布是岩",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "布克棱岩",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "恶魔叮",
+    "types": [
+      "恶, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "叮叮恶魔",
+    "types": [
+      "恶, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "毛毛",
+    "types": [
+      "虫, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "爬爬",
+    "types": [
+      "虫, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "化蝶",
+    "types": [
+      "虫, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "幽影树",
+    "types": [
+      "幽, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "小鼠獭",
+    "types": [
+      "普通, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "燕尾獭",
+    "types": [
+      "普通, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "卷胡巨獭",
+    "types": [
+      "普通, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "矿晶虫",
+    "types": [
+      "光, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "晶石蜗",
+    "types": [
+      "光, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "奇丽草",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "奇丽叶",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "奇丽花",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "丢丢",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "卡卡虫",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "卡瓦重",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "护主犬",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "音速犬",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "绿耳松鼠",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "抱枕松鼠",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "蹦床松鼠",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "嘟嘟煲",
+    "types": [
+      "毒"
+    ]
+  },
+  {
+    "name": "嘟嘟锅",
+    "types": [
+      "毒"
+    ]
+  },
+  {
+    "name": "小灵面",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "暗影灵面",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "幽冥眼",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "梦游",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "梦悠悠",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "兽花蕾",
+    "types": [
+      "光, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "伏地兽",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "贪食鼹",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "巨噬针鼹",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "蹦蹦种子",
+    "types": [
+      "草, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "蹦蹦草",
+    "types": [
+      "草, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "蹦蹦花",
+    "types": [
+      "草, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "电咩咩",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "粉咩咩",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "电球咩咩",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "蒲公英",
+    "types": [
+      "草, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "蒲公英娃娃",
+    "types": [
+      "草, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "伊贝儿",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "伊贝粉粉",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "白发懒人",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "动力猿",
+    "types": [
+      "普通, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "瞌睡王",
+    "types": [
+      "普通, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "海盔虫",
+    "types": [
+      "水, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "刺盔虫",
+    "types": [
+      "水, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "千棘盔",
+    "types": [
+      "水, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "菊花梨",
+    "types": [
+      "萌"
+    ]
+  },
+  {
+    "name": "小星光",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "星光狮",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "一窝蜂",
+    "types": [
+      "虫, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "黄蜂后",
+    "types": [
+      "虫, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "女王蜂",
+    "types": [
+      "虫, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "小夜",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "紫夜",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "朔夜伊芙",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "乖乖鹄",
+    "types": [
+      "翼, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "蓝珠天鹅",
+    "types": [
+      "翼, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "翠顶夫人",
+    "types": [
+      "翼, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "黑羽夫人",
+    "types": [
+      "翼, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "锤头鹳",
+    "types": [
+      "翼, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "绿草精灵",
+    "types": [
+      "草, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "魔草巫灵",
+    "types": [
+      "草, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "记忆石",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "咔咔羽毛",
+    "types": [
+      "翼, 普通",
+      "普通"
+    ]
+  },
+  {
+    "name": "咔咔雀",
+    "types": [
+      "翼, 普通",
+      "普通"
+    ]
+  },
+  {
+    "name": "咔咔鸟",
+    "types": [
+      "翼, 普通",
+      "普通"
+    ]
+  },
+  {
+    "name": "小草虫",
+    "types": [
+      "虫, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "草衣虫",
+    "types": [
+      "虫, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "花衣蝶",
+    "types": [
+      "虫, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "绿翼鸟",
+    "types": [
+      "萌, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "魔翼鸟",
+    "types": [
+      "萌, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "魔眷鸟",
+    "types": [
+      "萌, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "阿米亚特",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "阿米樱",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "罗隐",
+    "types": [
+      "地, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "风铃鲨",
+    "types": [
+      "水, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "蓝蝶鲨",
+    "types": [
+      "水, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "彩蝶鲨",
+    "types": [
+      "水, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "石石",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "巨灵石",
+    "types": [
+      "地, 幽",
+      "幽"
+    ]
+  },
+  {
+    "name": "仪使者",
+    "types": [
+      "地, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "仪式之星",
+    "types": [
+      "地, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "仪式巨像",
+    "types": [
+      "地, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "小独角兽",
+    "types": [
+      "光"
+    ]
+  },
+  {
+    "name": "白金独角兽",
+    "types": [
+      "光"
+    ]
+  },
+  {
+    "name": "旋叶虫",
+    "types": [
+      "普通, 虫",
+      "虫"
+    ]
+  },
+  {
+    "name": "蓬叶虫",
+    "types": [
+      "普通, 虫",
+      "虫"
+    ]
+  },
+  {
+    "name": "风滚暮虫",
+    "types": [
+      "普通, 虫",
+      "虫"
+    ]
+  },
+  {
+    "name": "小黑猫",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "黑猫巫师",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "忽幽狸",
+    "types": [
+      "幽, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "影狸",
+    "types": [
+      "幽, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "多多",
+    "types": [
+      "毒, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "多啦多",
+    "types": [
+      "毒, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "古啦多",
+    "types": [
+      "毒, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "哭哭菇",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "怖须菇",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "怖哭菇",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "恶魔狼",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "小电企鹅",
+    "types": [
+      "冰, 电",
+      "电"
+    ]
+  },
+  {
+    "name": "电企鹅",
+    "types": [
+      "冰, 电",
+      "电"
+    ]
+  },
+  {
+    "name": "雪豆丁",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "雪蛮人",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "雪巨人",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "呼呼猪",
+    "types": [
+      "冰, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "獠牙猪",
+    "types": [
+      "冰, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "雪娃娃",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "冰封怨灵",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "雪灵",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "大耳帽兜",
+    "types": [
+      "冰, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "帽兜娃娃",
+    "types": [
+      "冰, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "雪影娃娃",
+    "types": [
+      "冰, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "权杖-Ⅱ",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "权杖-Ⅴ",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "灵狐",
+    "types": [
+      "火, 冰",
+      "冰"
+    ]
+  },
+  {
+    "name": "九尾狐",
+    "types": [
+      "火, 冰",
+      "冰"
+    ]
+  },
+  {
+    "name": "尖嘴狐仙",
+    "types": [
+      "火, 冰",
+      "冰"
+    ]
+  },
+  {
+    "name": "里奥",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "灵羽勇士",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "圣羽翼王",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "松仔",
+    "types": [
+      "草, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "松叶羊",
+    "types": [
+      "草, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "针叶巡林",
+    "types": [
+      "草, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "小勇狮",
+    "types": [
+      "火, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "炽焰狮",
+    "types": [
+      "火, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "炽心勇狮",
+    "types": [
+      "火, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "水滴蛇",
+    "types": [
+      "水, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "水蛇锁",
+    "types": [
+      "水, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "游蛇魔使",
+    "types": [
+      "水, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "公平鸽",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "小怂猫",
+    "types": [
+      "武"
+    ]
+  },
+  {
+    "name": "怒目怂猫",
+    "types": [
+      "武"
+    ]
+  },
+  {
+    "name": "小狮鹫",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "神圣狮鹫",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "皇家狮鹫",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "圆眼蜘蛛",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "尖角蜘蛛",
+    "types": [
+      "虫, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "芋香巨角蛛",
+    "types": [
+      "虫, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "波波螺",
+    "types": [
+      "地, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "消波螺",
+    "types": [
+      "地, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "嗜波螺",
+    "types": [
+      "地, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "菇菇丁",
+    "types": [
+      "地, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "多菇丁",
+    "types": [
+      "地, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "九幽菇",
+    "types": [
+      "地, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "斑斑",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "斑枭",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "草头鸭",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "卷毛鸭",
+    "types": [
+      "草, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "海豹战士",
+    "types": [
+      "武, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "海豹船长",
+    "types": [
+      "武, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "号儿鱼",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "圆号鱼",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "甜田螺",
+    "types": [
+      "水, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "壳乙螺",
+    "types": [
+      "水, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "卡洛儿",
+    "types": [
+      "水, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "棋棋",
+    "types": [
+      "武, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "棋骑士",
+    "types": [
+      "武, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "棋齐垒",
+    "types": [
+      "武, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "棋祈督",
+    "types": [
+      "武, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "棋绮后",
+    "types": [
+      "武, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "奔波鼠",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "流浪鼠",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "呆小路",
+    "types": [
+      "草, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "舞动路路",
+    "types": [
+      "草, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "白发路路",
+    "types": [
+      "草, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "逗逗",
+    "types": [
+      "萌"
+    ]
+  },
+  {
+    "name": "气球猫",
+    "types": [
+      "萌"
+    ]
+  },
+  {
+    "name": "梦想三三",
+    "types": [
+      "萌"
+    ]
+  },
+  {
+    "name": "花怨鳗",
+    "types": [
+      "地, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "鳗尾兽",
+    "types": [
+      "地, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "伊雷龙",
+    "types": [
+      "龙"
+    ]
+  },
+  {
+    "name": "伊兰龙",
+    "types": [
+      "龙"
+    ]
+  },
+  {
+    "name": "拉特",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "酷拉",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "闪电环",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "刺电环",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "荆棘电环",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "小箱怪",
+    "types": [
+      "机械, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "迷迷箱怪",
+    "types": [
+      "机械, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "古钟蛇",
+    "types": [
+      "萌, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "寒音蛇",
+    "types": [
+      "萌, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "矮脚爬爬",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "恶魔红钻",
+    "types": [
+      "虫, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "火尾瓦特",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "火尾战士",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "烈火守护",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "里拉鳐",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "海枝枝",
+    "types": [
+      "水, 幽",
+      "幽"
+    ]
+  },
+  {
+    "name": "多西",
+    "types": [
+      "机械, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "库多西",
+    "types": [
+      "机械, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "波多西",
+    "types": [
+      "机械, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "小翼龙",
+    "types": [
+      "龙, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "翼龙",
+    "types": [
+      "龙, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "电动长颈鹿",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "奔乐鹿",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "爵士鹿",
+    "types": [
+      "电"
+    ]
+  },
+  {
+    "name": "缇塔",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "声波缇塔",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "小鹬",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "鄙目鹬",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "高脚鹬",
+    "types": [
+      "翼"
+    ]
+  },
+  {
+    "name": "脆筒甜甜",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "香草甜甜",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "圣代甜甜",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "刺轮砣",
+    "types": [
+      "毒, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "月亮砣",
+    "types": [
+      "毒, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "豆丁鱼",
+    "types": [
+      "水, 龙",
+      "龙"
+    ]
+  },
+  {
+    "name": "快鳍鱼",
+    "types": [
+      "水, 龙",
+      "龙"
+    ]
+  },
+  {
+    "name": "龙鱼",
+    "types": [
+      "水, 龙",
+      "龙"
+    ]
+  },
+  {
+    "name": "胆小鳗鱼",
+    "types": [
+      "电, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "闪电鳗鱼",
+    "types": [
+      "电, 水",
+      "水"
+    ]
+  },
+  {
+    "name": "翡翠水母",
+    "types": [
+      "水, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "琉璃水母",
+    "types": [
+      "水, 毒",
+      "毒"
+    ]
+  },
+  {
+    "name": "裘洛",
+    "types": [
+      "毒"
+    ]
+  },
+  {
+    "name": "裘力",
+    "types": [
+      "毒"
+    ]
+  },
+  {
+    "name": "裘卡",
+    "types": [
+      "毒"
+    ]
+  },
+  {
+    "name": "可爱猿",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "炽热猿",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "火焰猿",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "布鲁斯",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "雪顶布鲁斯",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "冰钻布鲁斯",
+    "types": [
+      "冰"
+    ]
+  },
+  {
+    "name": "治愈兔",
+    "types": [
+      "火, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "红丝绒",
+    "types": [
+      "火, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "红绒十字",
+    "types": [
+      "火, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "乌达",
+    "types": [
+      "恶, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "迷你乌",
+    "types": [
+      "恶, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "乌拉塔",
+    "types": [
+      "恶, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "螺旋帕帕",
+    "types": [
+      "机械, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "帕帕斯卡",
+    "types": [
+      "机械, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "机械方方",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "多彩方方",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "立方人",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "可立鸡",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "晕晕鸡",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "绅士鸡",
+    "types": [
+      "火, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "武者鸡",
+    "types": [
+      "火, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "优优",
+    "types": [
+      "地, 光",
+      "光"
+    ]
+  },
+  {
+    "name": "绒光优优",
+    "types": [
+      "地, 光",
+      "光"
+    ]
+  },
+  {
+    "name": "噼啪鸟",
+    "types": [
+      "电, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "深蓝鲸",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "格兰种子",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "格兰花",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "格兰球",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "地鼠",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "遁鼠",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "遁地鼠",
+    "types": [
+      "地"
+    ]
+  },
+  {
+    "name": "墨鱿士",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "混乱鱿彩",
+    "types": [
+      "幽, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "秩序鱿墨",
+    "types": [
+      "幽, 萌",
+      "萌"
+    ]
+  },
+  {
+    "name": "小甲虫",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "铠甲虫",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "圣剑侍从",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "圣剑-X",
+    "types": [
+      "机械"
+    ]
+  },
+  {
+    "name": "吸泥鸥",
+    "types": [
+      "地, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "泥吼牙",
+    "types": [
+      "地, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "大头骨龙",
+    "types": [
+      "龙, 幽",
+      "幽"
+    ]
+  },
+  {
+    "name": "寂灭骨龙",
+    "types": [
+      "龙, 幽",
+      "幽"
+    ]
+  },
+  {
+    "name": "厉毒小萝",
+    "types": [
+      "毒, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "厉毒修萝",
+    "types": [
+      "毒, 恶",
+      "恶"
+    ]
+  },
+  {
+    "name": "小帕尔",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "帕尔萨斯",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "龙息帕尔",
+    "types": [
+      "恶"
+    ]
+  },
+  {
+    "name": "毛头小蛛",
+    "types": [
+      "虫, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "捕尘长绒",
+    "types": [
+      "虫, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "食尘短绒",
+    "types": [
+      "虫, 地",
+      "地"
+    ]
+  },
+  {
+    "name": "画精灵",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "画像守护",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "画间法师手",
+    "types": [
+      "普通, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "画间沉铁兽",
+    "types": [
+      "普通, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "书魔虫",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "书卷守护",
+    "types": [
+      "普通"
+    ]
+  },
+  {
+    "name": "古卷执政官",
+    "types": [
+      "普通, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "古卷匣魔像",
+    "types": [
+      "普通, 武",
+      "武"
+    ]
+  },
+  {
+    "name": "绒绒",
+    "types": [
+      "光, 虫",
+      "虫"
+    ]
+  },
+  {
+    "name": "小绒茧",
+    "types": [
+      "光, 虫",
+      "虫"
+    ]
+  },
+  {
+    "name": "绒仙子",
+    "types": [
+      "光, 虫",
+      "虫"
+    ]
+  },
+  {
+    "name": "犀角鸟",
+    "types": [
+      "光"
+    ]
+  },
+  {
+    "name": "光纤兽",
+    "types": [
+      "光"
+    ]
+  },
+  {
+    "name": "疾光千兽",
+    "types": [
+      "光"
+    ]
+  },
+  {
+    "name": "果冻",
+    "types": [
+      "水"
+    ]
+  },
+  {
+    "name": "抹茶布丁",
+    "types": [
+      "水, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "椰浆布丁",
+    "types": [
+      "水, 冰",
+      "冰"
+    ]
+  },
+  {
+    "name": "熔岩布丁",
+    "types": [
+      "水, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "星尘虫",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "落星虫",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "陨星虫",
+    "types": [
+      "虫"
+    ]
+  },
+  {
+    "name": "双灯鱼",
+    "types": [
+      "水, 电",
+      "电"
+    ]
+  },
+  {
+    "name": "利灯鱼",
+    "types": [
+      "水, 电",
+      "电"
+    ]
+  },
+  {
+    "name": "月牙雪熊",
+    "types": [
+      "冰, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "嗜光嗡嗡",
+    "types": [
+      "恶, 光",
+      "光"
+    ]
+  },
+  {
+    "name": "窃光蚊",
+    "types": [
+      "恶, 光",
+      "光"
+    ]
+  },
+  {
+    "name": "柴渣虫",
+    "types": [
+      "火, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "燃薪虫",
+    "types": [
+      "火, 草",
+      "草"
+    ]
+  },
+  {
+    "name": "空空颅",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "夜宿颅",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "夜枭",
+    "types": [
+      "幽"
+    ]
+  },
+  {
+    "name": "粉粉星",
+    "types": [
+      "电, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "小皮球",
+    "types": [
+      "电, 幻",
+      "幻"
+    ]
+  },
+  {
+    "name": "贝瑟",
+    "types": [
+      "机械, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "贝加尔",
+    "types": [
+      "机械, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "贝古斯",
+    "types": [
+      "机械, 火",
+      "火"
+    ]
+  },
+  {
+    "name": "粉星仔",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "粉耳星兔",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "落陨星兔",
+    "types": [
+      "幻, 幽",
+      "幽"
+    ]
+  },
+  {
+    "name": "布瓜蝌",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "上岸蛙",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "火红尾",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "雅丹鬃",
+    "types": [
+      "火"
+    ]
+  },
+  {
+    "name": "春团",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "春兔",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "春花兔",
+    "types": [
+      "草"
+    ]
+  },
+  {
+    "name": "幽星光",
+    "types": [
+      "幻"
+    ]
+  },
+  {
+    "name": "曜星光",
+    "types": [
+      "幻, 翼",
+      "翼"
+    ]
+  },
+  {
+    "name": "暮星辰",
+    "types": [
+      "幻, 翼",
+      "翼"
+    ]
+  }
+];
 
         const TYPE_COLORS = {
             '普通': 'bg-stone-300', '火': 'bg-rose-400', '水': 'bg-sky-400', '草': 'bg-emerald-400',
@@ -58,7 +2368,7 @@
             "廖洁，你是我的全系守护，无人能及 🌸"
         ];
 
-        // 图标组件：防止 React DOM 冲突
+        // 图标组件：解决 React 渲染冲突
         const LucideIcon = ({ name, size = 20, className = "", fill = "none" }) => {
             const containerRef = useRef(null);
             useEffect(() => {
@@ -71,53 +2381,34 @@
         };
 
         function App() {
-            const [data, setData] = useState({ rules: null, pets: [] });
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
             const [defenders, setDefenders] = useState([]);
             const [quote, setQuote] = useState(LOVE_QUOTES[0]);
             const [showBurst, setShowBurst] = useState(false);
 
-            // 加载 GitHub 数据
-            useEffect(() => {
-                async function init() {
-                    try {
-                        const [rRes, pRes] = await Promise.all([fetch(RULES_URL), fetch(PETS_URL)]);
-                        if (!rRes.ok || !pRes.ok) throw new Error("连接数据仓库失败");
-                        
-                        const rules = await rRes.json();
-                        const rawPets = await pRes.json();
-                        
-                        const WIKI_MAP = { '幽灵': '幽', '恶魔': '恶', '土': '地' };
-                        const processedPets = rawPets.map(p => {
-                            const clean = new Set();
-                            if (p.types) {
-                                p.types.forEach(tg => tg.split(',').forEach(t => {
-                                    let s = t.trim(); s = WIKI_MAP[s] || s;
-                                    if (rules[s]) clean.add(s);
-                                }));
-                            }
-                            return { name: p.name, types: Array.from(clean) };
+            // 预处理图鉴（离线即时完成）
+            const processedPets = useMemo(() => {
+                const WIKI_MAP = { '幽灵': '幽', '恶魔': '恶', '土': '地' };
+                return PET_DATA.map(p => {
+                    const clean = new Set();
+                    p.types.forEach(tg => {
+                        const items = typeof tg === 'string' ? tg.split(',') : tg;
+                        items.forEach(t => {
+                            let s = t.trim(); s = WIKI_MAP[s] || s;
+                            if (TYPE_RULES_DATA[s]) clean.add(s);
                         });
-                        
-                        setData({ rules, pets: processedPets });
-                        setLoading(false);
-                    } catch (e) { 
-                        setError("同步中...请确认 GitHub 仓库为 Public 或稍后重试");
-                        setLoading(false);
-                    }
-                }
-                init();
+                    });
+                    return { name: p.name, types: Array.from(clean) };
+                });
             }, []);
 
             const results = useMemo(() => {
-                if (!data.rules || defenders.length === 0) return null;
+                if (defenders.length === 0) return null;
                 const res = { '3': [], '2': [], '1': [], '0.5': [], '0.25': [], '0': [] };
-                Object.keys(data.rules).forEach(attacker => {
+                Object.keys(TYPE_RULES_DATA).forEach(attacker => {
                     let m = 1;
                     defenders.forEach(def => {
-                        if (data.rules[attacker].strong.includes(def)) m *= 2;
-                        if (data.rules[attacker].resist.includes(def)) m *= 0.5;
+                        if (TYPE_RULES_DATA[attacker].strong.includes(def)) m *= 2;
+                        if (TYPE_RULES_DATA[attacker].resist.includes(def)) m *= 0.5;
                     });
                     if (m >= 4) m = 3;
                     const key = m.toString();
@@ -126,12 +2417,12 @@
                     else if (m === 0) res['0'].push(attacker);
                 });
                 return res;
-            }, [defenders, data.rules]);
+            }, [defenders]);
 
             const getRecommendedPets = (type) => {
                 const matches = []; const seen = new Set();
-                for (let i = data.pets.length - 1; i >= 0; i--) {
-                    const p = data.pets[i];
+                for (let i = processedPets.length - 1; i >= 0; i--) {
+                    const p = processedPets[i];
                     if (p.types.includes(type) && !seen.has(p.name)) {
                         matches.push(p.name); seen.add(p.name);
                     }
@@ -143,15 +2434,15 @@
             const getDefenderSpriteReference = useMemo(() => {
                 if (defenders.length === 0) return [];
                 const matches = []; const seen = new Set();
-                for (let i = data.pets.length - 1; i >= 0; i--) {
-                    const p = data.pets[i];
+                for (let i = processedPets.length - 1; i >= 0; i--) {
+                    const p = processedPets[i];
                     if (defenders.every(t => p.types.includes(t)) && !seen.has(p.name)) {
                         matches.push(p.name); seen.add(p.name);
                     }
                     if (matches.length >= 15) break;
                 }
                 return matches;
-            }, [defenders, data.pets]);
+            }, [defenders, processedPets]);
 
             const triggerLove = () => {
                 setQuote(LOVE_QUOTES[Math.floor(Math.random() * LOVE_QUOTES.length)]);
@@ -159,80 +2450,75 @@
                 setTimeout(() => setShowBurst(false), 1000);
             };
 
-            if (loading) return (
-                <div className="h-screen flex flex-col items-center justify-center">
-                    <div className="relative">
-                        <div className="w-20 h-20 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin"></div>
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                             <LucideIcon name="heart" size={32} fill="#ec4899" className="animate-pulse text-pink-500" />
-                        </div>
-                    </div>
-                    <p className="mt-6 font-bold text-pink-400 tracking-widest animate-bounce text-sm text-center">正在为廖洁同步云端图鉴...</p>
-                </div>
-            );
-
             return (
                 <div className="max-w-6xl mx-auto p-4 md:p-8 relative min-h-screen">
+                    {/* 背景灵动装饰 */}
+                    <div className="fixed top-0 left-0 w-full h-full -z-10 opacity-30 pointer-events-none overflow-hidden">
+                         <div className="absolute top-[10%] left-[5%] w-64 h-64 bg-pink-200 rounded-full blur-[100px] animate-pulse"></div>
+                         <div className="absolute bottom-[10%] right-[5%] w-96 h-96 bg-purple-200 rounded-full blur-[120px] animate-pulse"></div>
+                    </div>
+
                     <header className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6 relative z-10">
                         <div className="flex items-center gap-5">
-                            <div className="bg-pink-500 p-4 rounded-[2rem] shadow-lg shadow-pink-200 floating">
-                                <LucideIcon name="heart" size={32} className="text-white" fill="white" />
+                            <div className="bg-pink-500 p-4 rounded-[2.5rem] shadow-lg shadow-pink-200 floating text-white">
+                                <LucideIcon name="heart" size={36} fill="white" />
                             </div>
                             <div>
-                                <h1 className="text-4xl font-black">廖洁专属 <span className="text-pink-500">·</span> 爱意助手</h1>
+                                <h1 className="text-4xl font-black tracking-tight">廖洁专属 <span className="text-pink-500">·</span> 爱意助手</h1>
                                 <p className="text-pink-400 font-bold text-xs mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <LucideIcon name="cloud" size={12} fill="#ec4899" /> 数据仓库已实时同步
+                                    <LucideIcon name="award" size={14} fill="#ec4899" /> 全能离线典藏版 · 廖洁专属
                                 </p>
                             </div>
                         </div>
-                        <button onClick={triggerLove} className="bg-white/80 backdrop-blur px-6 py-3 rounded-2xl shadow-sm border border-pink-100 flex items-center gap-3 group transition-all hover:shadow-pink-100 hover:scale-105 active:scale-95">
+                        <button onClick={triggerLove} className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-100 flex items-center gap-4 group transition-all hover:shadow-pink-200 hover:scale-105 active:scale-95">
                             <div className="text-right">
-                                <p className="text-[10px] font-black text-slate-300 uppercase">点击今日惊喜</p>
-                                <p className="text-xs font-bold text-pink-500">廖洁的爱心驿站</p>
+                                <p className="text-[10px] font-black text-slate-300 uppercase">惊喜驿站</p>
+                                <p className="text-xs font-bold text-pink-500">廖洁的随机情话</p>
                             </div>
-                            <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-colors">
-                                <LucideIcon name="heart" size={20} fill={showBurst ? "currentColor" : "none"} className={showBurst ? "love-burst" : ""} />
+                            <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center text-pink-500 group-hover:bg-pink-500 group-hover:text-white transition-colors shadow-inner">
+                                <LucideIcon name="heart" size={24} fill={showBurst ? "currentColor" : "none"} className={showBurst ? "love-burst" : ""} />
                             </div>
                         </button>
                     </header>
 
-                    <div className="mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-700">
-                        <p className="inline-block px-8 py-3 bg-white/70 backdrop-blur border border-pink-200 rounded-full text-pink-600 font-bold text-sm italic shadow-sm">
+                    <div className="mb-10 text-center animate-in fade-in duration-1000">
+                        <p className="inline-block px-10 py-4 bg-white/80 backdrop-blur-md border border-pink-200 rounded-full text-pink-600 font-bold text-sm italic shadow-xl">
                             " {quote} "
                         </p>
                     </div>
 
                     <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+                        {/* 控制面板 */}
                         <div className="lg:col-span-5 space-y-6">
-                            <section className="glass-card p-8 rounded-[3rem]">
-                                <h2 className="text-xl font-black mb-6 flex items-center gap-3">
-                                    <LucideIcon name="shield" className="text-pink-500" /> 设定对手属性
+                            <section className="glass-card p-8 rounded-[3.5rem] shadow-2xl">
+                                <h2 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                                    <LucideIcon name="shield" className="text-pink-500" /> 防守属性设定
                                 </h2>
-                                <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-4 gap-3">
-                                    {Object.keys(data.rules).map(type => (
+                                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                                    {Object.keys(TYPE_RULES_DATA).map(type => (
                                         <button 
                                             key={type}
                                             onClick={() => defenders.includes(type) ? setDefenders(defenders.filter(t => t!==type)) : defenders.length<2 && setDefenders([...defenders, type])}
-                                            className={`py-3 rounded-2xl font-black text-xs transition-all border ${
+                                            className={`py-3.5 rounded-2xl font-black text-xs transition-all border ${
                                                 defenders.includes(type) 
-                                                ? `${TYPE_COLORS[type]} text-white border-transparent ring-4 ring-pink-100 shadow-lg scale-95` 
-                                                : 'bg-white/50 text-slate-500 border-slate-100 hover:border-pink-200 hover:text-pink-500'
+                                                ? `${TYPE_COLORS[type]} text-white border-transparent ring-4 ring-pink-100 shadow-xl scale-95` 
+                                                : 'bg-white/60 text-slate-500 border-slate-100 hover:border-pink-300 hover:text-pink-500'
                                             }`}
                                         >
                                             {type}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="mt-8 p-6 bg-pink-50/50 rounded-3xl border border-pink-100">
-                                    <h3 className="text-xs font-black text-pink-400 mb-4 uppercase tracking-widest flex items-center gap-2">
-                                        <LucideIcon name="search" size={14} /> 廖洁可能遇到的对手
+                                <div className="mt-10 p-8 bg-pink-50/50 rounded-[2.5rem] border-2 border-dashed border-pink-100">
+                                    <h3 className="text-xs font-black text-pink-400 mb-6 uppercase tracking-widest flex items-center gap-2">
+                                        <LucideIcon name="search" size={16} /> 可能遇到的精灵参考
                                     </h3>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-2.5">
                                         {defenders.length === 0 ? (
-                                            <p className="text-slate-400 text-xs italic py-2">等待选定属性...</p>
+                                            <p className="text-slate-400 text-xs italic py-2">请先点击上方属性按钮...</p>
                                         ) : getDefenderSpriteReference.length > 0 ? (
                                             getDefenderSpriteReference.map(name => (
-                                                <span key={name} className="px-3 py-1.5 bg-white text-slate-700 text-[11px] font-bold rounded-xl border border-pink-50 shadow-sm">
+                                                <span key={name} className="px-4 py-2 bg-white text-slate-700 text-xs font-bold rounded-xl border border-pink-50 shadow-sm hover:bg-pink-500 hover:text-white transition-colors cursor-default">
                                                     {name}
                                                 </span>
                                             ))
@@ -244,44 +2530,50 @@
                             </section>
                         </div>
 
+                        {/* 分析面板 */}
                         <div className="lg:col-span-7">
-                            <div className="bg-white/90 rounded-[3rem] shadow-2xl shadow-pink-100/50 overflow-hidden flex flex-col min-h-[600px] border border-pink-50">
+                            <div className="bg-white/90 rounded-[3.5rem] shadow-2xl shadow-pink-100/50 overflow-hidden flex flex-col min-h-[650px] border border-pink-50">
                                 <div className="bg-slate-900 p-8 flex items-center justify-between text-white">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-pink-500/20 flex items-center justify-center text-pink-500">
-                                            <LucideIcon name="zap" size={24} fill="currentColor" />
+                                        <div className="w-14 h-14 rounded-2xl bg-pink-500/20 flex items-center justify-center text-pink-500 shadow-lg">
+                                            <LucideIcon name="zap" size={28} fill="currentColor" />
                                         </div>
-                                        <h3 className="font-black text-xl tracking-tight">打击方案预测</h3>
+                                        <div>
+                                            <h3 className="font-black text-2xl tracking-tight">打击方案预测</h3>
+                                            <p className="text-[10px] text-pink-400 uppercase font-black tracking-widest mt-1">Combat Analysis For Liao Jie</p>
+                                        </div>
                                     </div>
-                                    <button onClick={() => { setDefenders([]); triggerLove(); }} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                                        <LucideIcon name="refresh-cw" size={18} />
+                                    <button onClick={() => { setDefenders([]); triggerLove(); }} className="w-12 h-12 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors">
+                                        <LucideIcon name="refresh-cw" size={20} />
                                     </button>
                                 </div>
 
-                                <div className="p-8 grow">
+                                <div className="p-10 grow bg-slate-50/20">
                                     {!results ? (
-                                        <div className="h-full flex flex-col items-center justify-center space-y-6 opacity-40 py-20">
-                                            <LucideIcon name="heart" size={64} className="text-pink-200 animate-pulse" fill="#fecdd3" />
-                                            <p className="font-bold text-slate-400 tracking-widest text-sm">廖洁，选个属性开始吧</p>
+                                        <div className="h-full flex flex-col items-center justify-center space-y-8 opacity-40 py-24">
+                                            <div className="w-24 h-24 rounded-[3rem] bg-white shadow-xl flex items-center justify-center text-pink-200">
+                                                <LucideIcon name="heart" size={64} fill="currentColor" className="animate-pulse" />
+                                            </div>
+                                            <p className="font-bold text-slate-400 tracking-[0.2em]">廖洁，请选择属性组合</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-6">
+                                        <div className="space-y-10 animate-in slide-in-from-bottom-5 duration-700">
                                             {['3', '2'].map(val => results[val].length > 0 && (
-                                                <div key={val} className={`p-6 rounded-[2.5rem] border-2 ${val === '3' ? 'bg-pink-50/50 border-pink-100 shadow-pink-50' : 'bg-orange-50/50 border-orange-100 shadow-orange-50'} shadow-xl`}>
-                                                    <h3 className={`font-black text-lg mb-6 flex items-center gap-2 ${val === '3' ? 'text-pink-600' : 'text-orange-600'}`}>
-                                                        <LucideIcon name="swords" size={18} /> 
-                                                        {val === '3' ? '极致打击' : '克制优势'} ({val}x)
+                                                <div key={val} className={`p-8 rounded-[3rem] border-2 shadow-xl ${val === '3' ? 'bg-pink-50/50 border-pink-100' : 'bg-orange-50/50 border-orange-100'}`}>
+                                                    <h3 className={`font-black text-xl mb-8 flex items-center gap-3 ${val === '3' ? 'text-pink-600' : 'text-orange-600'}`}>
+                                                        <LucideIcon name="swords" size={22} /> 
+                                                        {val === '3' ? '对廖洁的极致宠爱 (3x)' : '克制优势 (2x)'}
                                                     </h3>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                         {results[val].map(t => (
-                                                            <div key={t} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 group">
-                                                                <div className="flex items-center justify-between mb-3">
-                                                                    <span className={`px-4 py-1.5 rounded-xl text-white font-black text-xs shadow-md ${TYPE_COLORS[t]}`}>{t}</span>
-                                                                    <LucideIcon name="star" className="text-yellow-400" size={14} fill="currentColor" />
+                                                            <div key={t} className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 group hover:shadow-xl transition-all hover:scale-[1.02]">
+                                                                <div className="flex items-center justify-between mb-4">
+                                                                    <span className={`px-5 py-2.5 rounded-2xl text-white font-black text-sm shadow-md ${TYPE_COLORS[t]}`}>{t}</span>
+                                                                    <LucideIcon name="star" className="text-yellow-400" size={16} fill="currentColor" />
                                                                 </div>
-                                                                <div className="flex flex-wrap gap-1.5">
+                                                                <div className="flex flex-wrap gap-2">
                                                                     {getRecommendedPets(t).map(name => (
-                                                                        <span key={name} className="px-2.5 py-1 bg-pink-50/30 text-slate-600 text-[10px] font-bold rounded-lg border border-pink-100">{name}</span>
+                                                                        <span key={name} className="px-3 py-1.5 bg-pink-50/30 text-slate-600 text-[11px] font-bold rounded-xl border border-pink-100">{name}</span>
                                                                     ))}
                                                                 </div>
                                                             </div>
@@ -290,32 +2582,37 @@
                                                 </div>
                                             ))}
                                             
-                                            <div className="grid grid-cols-2 gap-4 pt-4">
-                                                <div className="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100">
-                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">1.0x 正常</h4>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {results['1'].map(t => <span key={t} className="px-2 py-1 bg-white text-slate-500 text-[10px] font-bold rounded-lg">{t}</span>)}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-pink-50">
+                                                <div className="p-6 bg-white/60 rounded-[2.5rem] border border-slate-100">
+                                                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                        <LucideIcon name="activity" size={14} /> 正常打击
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {results['1'].map(t => <span key={t} className="px-3.5 py-1.5 bg-white text-slate-600 text-[11px] font-bold rounded-xl border border-slate-100 shadow-sm">{t}</span>)}
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-slate-100/50 rounded-[1.5rem] border border-slate-200/50">
-                                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">弱效/抵抗</h4>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {results['0.5'].concat(results['0.25']).concat(results['0']).map(t => <span key={t} className="px-2 py-1 bg-slate-200 text-slate-400 text-[10px] font-bold rounded-lg">{t}</span>)}
+                                                <div className="p-6 bg-slate-100/50 rounded-[2.5rem] border border-slate-200/50">
+                                                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                                        <LucideIcon name="shield-alert" size={14} /> 弱效打击
+                                                    </h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {results['0.5'].concat(results['0.25']).concat(results['0']).map(t => <span key={t} className="px-3.5 py-1.5 bg-slate-200 text-slate-400 text-[11px] font-bold rounded-xl">{t}</span>)}
                                                     </div>
                                                 </div>
                                             </div>
 
+                                            {/* 浪漫彩蛋逻辑 */}
                                             {defenders.some(d => d === '光' || d === '幻') && (
-                                                <div className="p-5 bg-gradient-to-r from-pink-500 to-rose-400 rounded-3xl text-white text-center shadow-lg animate-bounce border-2 border-white/50">
-                                                    <p className="font-black text-sm tracking-widest">✨ 廖洁，你是光，也是我最美的幻想 ✨</p>
+                                                <div className="p-6 bg-gradient-to-r from-pink-500 to-rose-400 rounded-3xl text-white text-center shadow-xl animate-bounce border-2 border-white/50">
+                                                    <p className="font-black text-base tracking-widest">✨ 廖洁发现彩蛋了！你是光，也是我最美的幻想 ✨</p>
                                                 </div>
                                             )}
                                         </div>
                                     )}
                                 </div>
 
-                                <footer className="p-6 border-t border-pink-50 text-center bg-white/50 text-[10px] font-black text-pink-300 uppercase tracking-[0.4em]">
-                                    Cloud Data Sync Version · Liao Jie Only
+                                <footer className="p-8 border-t border-pink-50 text-center bg-white/50 text-[10px] font-black text-pink-300 uppercase tracking-[0.4em]">
+                                    Special Offline Edition · Dedicated To Liao Jie
                                 </footer>
                             </div>
                         </div>
